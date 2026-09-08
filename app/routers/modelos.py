@@ -62,7 +62,7 @@ def update_modelo(modelo_id:int, modelo_update:ModeloImpresoraUpdate, db:Session
 def delete_modelo(modelo_id:int, db:Session=Depends(get_db)):
     """ Eliminar un modelo (solo si no tiene equipos asociados)"""
     success = crud_modelo.delete_modelo(db, modelo_id)
-    if not succes:
+    if not success:
         raise HTTPException(
             status_code=400,
             detail="No se puede elimiar el modelo porque tiene equipos asociados"
