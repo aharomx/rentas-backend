@@ -7,6 +7,7 @@ class Contrato(Base):
     __tablename__="contratos"
 
     id= Column(Integer, primary_key=True, index=True)
+    
     id_cliente= Column(Integer, ForeignKey("clientes.id"), nullable=False)
     id_tipo_plan = Column(Integer, ForeignKey("tipos_plan.id"), nullable=False)
 
@@ -37,6 +38,6 @@ class Contrato(Base):
     cliente = relationship("Cliente", back_populates="contratos")
     tipo_plan = relationship("TipoPlan")
     equipos_asignados = relationship("ContratoEquipo", back_populates="contrato", cascade="all, delete-orphan")
-    movimientos = relationship("MovimientosEquipo", foreign_keys="MovimientoEquipo.id_contrato_origen", back_populates="contrato_origen")
+    movimientos = relationship("MovimientoEquipo", foreign_keys="MovimientoEquipo.id_contrato_origen", back_populates="contrato_origen")
 
 

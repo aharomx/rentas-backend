@@ -5,9 +5,9 @@ from typing import Optional
 class ModeloImpresoraBase(BaseModel):
     nombre_modelo: str
     es_color: bool = False
-    velocidad_ppm = Optional[int] = None
-    rendimiento_toner_negro = Optional[int] = None
-    rendimiento_toner_color = Optional[int] = None
+    velocidad_ppm: Optional[int] = None
+    rendimiento_toner_negro: Optional[int] = None
+    rendimiento_toner_color: Optional[int] = None
 
 
 class ModeloImpresoraCreate(ModeloImpresoraBase):

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.modelos_impresoras import ModeloImpresora
+from app.models.modelo_impresora import ModeloImpresora
 from app.schemas.modelo_impresora import (
     ModeloImpresoraCreate,
     ModeloImpresoraUpdate
@@ -12,7 +12,7 @@ def get_modelo(db: Session, modelo_id: int):
 
 
 def get_modelo_by_name(db: Session, nombre:str):
-    return db.query(ModeloImpresora).filter(ModeloImpresora.nombre_modelo == nombre)
+    return db.query(ModeloImpresora).filter(ModeloImpresora.nombre_modelo == nombre).first()
 
 
 def get_modelos(db:Session, skip:int=0, limit:int=100, es_color:Optional[bool]=None):

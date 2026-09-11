@@ -5,7 +5,7 @@ from typing import List, Optional
 from app.database import get_db
 from app.schemas.equipo import EquipoCreate, EquipoUpdate, EquipoResponse
 from app.crud import equipo as crud_equipo
-from app.crud import modeo_impresora as crud_modelo
+from app.crud import modelo_impresora as crud_modelo
 
 
 router = APIRouter(prefix="/equipos", tags=["Equipos"])

@@ -22,18 +22,17 @@ def read_movimientos(
     query = db.query(MovimientoEquipo)
     if equipo_id:
         query = query.filter(MovimientoEquipo.id_equipo==equipo_id)
-    return query.order_by(MovimientoEquipo.fecha_movimiento.desc()).offset(skip).limit(limit).all
+    return query.order_by(MovimientoEquipo.fecha_movimiento.desc()).offset(skip).limit(limit).all()
 
 @router.get("/contrato/{contrato_id}", response_model=List[MovimientoEquipoResponse])
 def read_movimientos_by_contrato(
-    contrato_id:int,
-    skip:int=0,
-    limit:int=0,
-    db:Session=Depends(get_db)
+    contrato_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
 ):
-    """ Obtener historial de movimientos de un contrato específico """
-    return db.query(MovimientoEquipo.filter(
-        (MovimientoEquipo.id_contrato_origen == contrato_id)  |
+    """Obtener historial de movimientos de un contrato específico"""
+    return db.query(MovimientoEquipo).filter(
+        (MovimientoEquipo.id_contrato_origen == contrato_id) |
         (MovimientoEquipo.id_contrato_destino == contrato_id)
-    )).order_by(MovimientoEquipo.fecha_movimiento.desc()).offset(skip).limit(limit).all()
-
+    ).order_by(MovimientoEquipo.fecha_movimiento.desc()).offset(skip).limit(limit).all()

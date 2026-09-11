@@ -13,7 +13,7 @@ class MovimientoEquipo(Base):
 
     tipo_movimiento= Column(String(30), nullable=False) # 'alta', 'cambio_ubicacion', 'baja', 'transferencia'
     fecha_movimiento= Column(TIMESTAMP, server_default=func.now())
-    obaservaciones= Column(Text, nullable=True)
+    observaciones= Column(Text, nullable=True)
 
     # Relaciones
     equipo= relationship("Equipo")

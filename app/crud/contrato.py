@@ -60,7 +60,7 @@ def create_contrato(db:Session, contrato:ContratoCreate):
         bolsa_color=contrato.bolsa_color,
         costo_excedente_mono=contrato.costo_excedente_mono,
         costo_excedente_color=contrato.costo_excedente_color,
-        modo_captur=contrato.modo_captura,
+        modo_captura=contrato.modo_captura,
         condiciones_especiales=contrato.condiciones_especiales,
         observaciones=contrato.observaciones
     )
@@ -96,8 +96,8 @@ def create_contrato(db:Session, contrato:ContratoCreate):
         # Registrar movimiento de alta
         movimiento=MovimientoEquipo(
             id_equipo=equipo.id,
-            id_contrato_origin=None,
-            id_contato_destino=db_contrato.id,
+            id_contrato_origen=None,
+            id_contrato_destino=db_contrato.id,
             tipo_movimiento="alta",
             observaciones=f"Alta en contrato {db_contrato.id}"
         )
@@ -114,7 +114,7 @@ def update_contrato(db:Session, contrato_id:int, contrato_update:ContratoUpdate)
         return None
 
     for key, value in contrato_update.model_dump(exclude_unset=True).items():
-        setattr(db.contrato, key, value)
+        setattr(db_contrato, key, value)
 
     db.commit()
     db.refresh(db_contrato)
@@ -182,7 +182,7 @@ def mover_equipo_contrato(
         id_contrato_origen=contrato_origen_id,
         id_contrato_destino=contrato_destino_id,
         tipo_movimiento="transferencia",
-        observacines=f"Transferencia de contrato {contrato_origen_id} a {contrato_destino_id}"
+        observaciones=f"Transferencia de contrato {contrato_origen_id} a {contrato_destino_id}"
     )
     db.add(movimiento)
 

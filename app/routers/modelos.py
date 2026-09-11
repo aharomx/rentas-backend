@@ -8,7 +8,7 @@ from app.schemas.modelo_impresora import (
     ModeloImpresoraUpdate, 
     ModeloImpresoraResponse
 )
-from app.crud import modeo_impresora as crud_modelo
+from app.crud import modelo_impresora as crud_modelo
 
 router = APIRouter(prefix="/modelos", tags=["Modelos de Impresoras"])
 

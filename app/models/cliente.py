@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, Boolean, ForeignKey, ARRAY
+from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -21,17 +22,18 @@ class Cliente(Base):
 
 
     # Relaciones
-    direcciones = relationship("DireccionCliente", back_populates="cliente", cascade="all delete-orphan")
-    contactos = relationship("ContactosCliente", back_populates="cliente", cascade="all delete-orphan")
+    direcciones = relationship("DireccionCliente", back_populates="cliente", cascade="all, delete-orphan")
+    contactos = relationship("ContactoCliente", back_populates="cliente", cascade="all, delete-orphan")
     contratos = relationship("Contrato", back_populates="cliente") 
 
 
 class DireccionCliente(Base):
-    __tablename__ = "direcciones_ciente"
+    __tablename__ = "direcciones_cliente"
 
     id = Column(Integer, primary_key=True, index=True)
-    id_cliente = Column(Integer, ForeignKey("clientes.id"), ondelete="CASCADE", nullable=False)
-    tipo_dirección = Column(String(30), nullable=False) #fiscal, entrega, facturación, correspondencia
+    id_cliente = Column(Integer, ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+
+    tipo_direccion = Column(String(30), nullable=False) #fiscal, entrega, facturación, correspondencia
     es_principal = Column(Boolean, default=False)
 
     calle = Column(String(200), nullable=True)
@@ -42,7 +44,7 @@ class DireccionCliente(Base):
     ciudad = Column(String(100), nullable=True)
     estado = Column(String(100), nullable=True)
     pais = Column(String(50), default="Mexico")
-    referancia = Column(Text, nullable=True)
+    referencia = Column(Text, nullable=True)
 
     nombre_contacto = Column(String(100), nullable=True)
     telefono_contacto = Column(String(20), nullable=True)
@@ -61,14 +63,16 @@ class ContactoCliente(Base):
     __tablename__ = "contactos_cliente"
 
     id = Column(Integer, primary_key=True, index=True)
+
     id_cliente = Column(Integer, ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+
     nombre = Column(String(100), nullable=False)
     puesto = Column(String(100), nullable=True)
     departamento = Column(String(100), nullable=True)
     telefono_oficina = Column(String(20), nullable=True)
     telefono_movil = Column(String(20), nullable=True)
     email = Column(String(100), nullable=True)
-    email_aternativo = Column(String(100), nullable=True)
+    email_alternativo = Column(String(100), nullable=True)
 
     # Roles como array PostgreSQL
     roles = Column(ARRAY(String), nullable=True) # ['compras', 'entrega', 'it']

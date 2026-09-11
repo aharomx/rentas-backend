@@ -18,8 +18,8 @@ class DireccionBase(BaseModel):
     nombre_contacto: Optional[str] = None
     telefono_contacto: Optional[str] =  None
     email_contacto: Optional[EmailStr] = None
-    horacion_atencion: Optional[str] = None
-    Observaciones: Optional[str] = None
+    horario_atencion: Optional[str] = None
+    observaciones: Optional[str] = None
 
 class DireccionCreate(DireccionBase):
     pass
@@ -31,7 +31,7 @@ class DirectionUpdate(DireccionBase):
 
 class DireccionResponse(DireccionBase):
     id: int
-    active:bool
+    activo:bool
     fecha_alta: datetime
 
     class config:

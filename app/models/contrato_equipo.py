@@ -4,11 +4,12 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 class ContratoEquipo(Base):
-    __tablename__="Contrato_equipos"
+    __tablename__="contrato_equipo"
 
     id= Column(Integer, primary_key=True, index=True)
+
     id_contrato= Column(Integer, ForeignKey("contratos.id", ondelete="CASCADE"), nullable=False)
-    id_equipo= Column(Integer, ForeignKey("contratos.id", ondelete="CASCADE"), nullable=False)
+    id_equipo= Column(Integer, ForeignKey("equipos.id", ondelete="CASCADE"), nullable=False)
 
     fecha_ingreso= Column(Date, nullable=False)
     contador_inicial_contrato= Column(Integer, nullable=False) # Contador al ingresar a este contrato
