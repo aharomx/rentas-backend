@@ -6,7 +6,7 @@ from app.database import engine, Base
 from app.models import (
     Cliente, DireccionCliente, ContactoCliente,
     ModeloImpresora, Equipo,
-    TipoPlan, Contrato, ContratoEquipo, MovimientoEquipo
+    TipoPlan, Contrato, ContratoEquipo, MovimientoEquipo,
 )
 
 # ⭐ CREAR TABLAS SI NO EXISTEN
@@ -15,7 +15,8 @@ Base.metadata.create_all(bind=engine)
 # ⭐ IMPORTAR ROUTERS
 from app.routers import (
     clientes, modelos, equipos, 
-    tipos_plan, contratos, movimientos
+    tipos_plan, contratos, movimientos,
+    auth, usuarios
 )
 
 app = FastAPI(
@@ -34,6 +35,8 @@ app.add_middleware(
 )
 
 # Incluir routers
+app.include_router(auth.router)
+app.include_router(usuarios.router)
 app.include_router(clientes.router)
 app.include_router(modelos.router)
 app.include_router(equipos.router)
