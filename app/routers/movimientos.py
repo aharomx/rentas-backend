@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from app.security import get_current_user
+
 
 from app.database import get_db
 from app.schemas.movimiento_equipo import (
@@ -16,7 +18,8 @@ def read_movimientos(
     skip:int=0,
     limit:int=100,
     equipo_id:Optional[int]=None,
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """ Onbtener historial de movimientos de equipos """
     query = db.query(MovimientoEquipo)
@@ -29,7 +32,8 @@ def read_movimientos_by_contrato(
     contrato_id: int,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """Obtener historial de movimientos de un contrato específico"""
     return db.query(MovimientoEquipo).filter(

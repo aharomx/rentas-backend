@@ -12,18 +12,21 @@ from app.crud import contrato as crud_contrato
 from app.crud import cliente as crud_cliente
 from app.crud import tipo_plan as crud_tipo_plan
 from app.crud import equipo as crud_equipo
+from app.security import get_current_user, require_roles
+
 
 router=APIRouter(prefix="/contratos", tags=["Contratos"])
 
 
 # ====================== CONTRATOS ==============================
 
-@router.get("/, response_model=List[ContratoResponse]")
+@router.get("/", response_model=List[ContratoResponse])
 def read_contratos(
     skip:int=0,
     limit:int=1000,
     activo:Optional[bool]=None,
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """ Obtener lista de contratos con paginación y filtro por estado """
     return crud_contrato.get_contratos(db, skip=skip, limit=limit, activo=activo)
@@ -33,7 +36,8 @@ def read_contratos(
 def read_contratod_by_cliente(
     cliente_id:int,
     activo:Optional[bool]=None,
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """ Obtener contratos de un cliente específico """
 
@@ -50,19 +54,27 @@ def read_contratod_by_cliente(
 @router.get("/por-vencer", response_model=List[ContratoResponse])
 def read_contratos_por_vencer(
     dias:int=30,
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """ Obtener contratos que vencen en los próximos N dias"""
     return crud_contrato.get_contratos_por_vencer(db, dias=dias)
 
 
 @router.get("/vencidos", response_model=List[ContratoResponse])
-def read_contratos_vencidos(db:Session=Depends(get_db)):
+def read_contratos_vencidos(
+    db:Session=Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """ Obtener contratos vencidos que aún están activos """
     return crud_contrato.get_contratos_vencidos(db)
 
 @router.get("/{contrato_id}", response_model=ContratoResponse)
-def read_contrato(contrato_id:int, db:Session=Depends(get_db)):
+def read_contrato(
+    contrato_id:int, 
+    db:Session=Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """ Obtener contrato por su id """
     db_contrato = crud_contrato.get_contrato(db, contrato_id)
     if not db_contrato:
@@ -73,7 +85,11 @@ def read_contrato(contrato_id:int, db:Session=Depends(get_db)):
     return db_contrato
 
 @router.post("/", response_model=ContratoResponse, status_code=status.HTTP_201_CREATED)
-def create_contrato(contrato:ContratoCreate, db:Session=Depends(get_db)):
+def create_contrato(
+    contrato:ContratoCreate, 
+    db:Session=Depends(get_db),
+    current_user = Depends(require_roles(["superuser", "admin", "coordinador"]))
+):
     """ Crear un nuevo contrato con sus equipos asignados """
 
     # Verificar que el cliente existe
@@ -113,7 +129,8 @@ def create_contrato(contrato:ContratoCreate, db:Session=Depends(get_db)):
 def update_contrato(
     contrato_id:int,
     contrato_update:ContratoUpdate,
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user = Depends(require_roles(["superuser", "admin", "coordinador"]))
 ):
     """ Actualizar un contrato existente """
     db_contrato = crud_contrato.update_contrato(db, contrato_id,contrato_update)
@@ -125,7 +142,11 @@ def update_contrato(
     return db_contrato
 
 @router.delete("/{contrato_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_contrato(contrato_id:int, db:Session=Depends(get_db)):
+def delete_contrato(
+    contrato_id:int, 
+    db:Session=Depends(get_db),
+    current_user = Depends(require_roles(["superuser", "admin"]))
+):
     """ Eliminar un contrato (Solo si no tiene equipos activos)"""
 
     db_contrato = crud_contrato.get_contrato(db, contrato_id)
@@ -156,7 +177,8 @@ def delete_contrato(contrato_id:int, db:Session=Depends(get_db)):
 def agregar_equipo_a_contrato(
         contrato_id:int,
         equipo_data:ContratoEquipoCreate,
-        db:Session=Depends(get_db)
+        db:Session=Depends(get_db),
+        current_user = Depends(require_roles(["superuser", "admin", "coordinador"]))
 ):
     """ Agregar un equipo existente a un contrato """
 
@@ -203,7 +225,8 @@ def mover_equipo_entre_contratos(
     contrato_destino_id:int,
     nuevo_contador_inicial:int,
     nueva_ubicación:Optional[str]=None,
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user = Depends(require_roles(["superuser", "admin", "coordinador"]))
 ):
     """ Mover un equipo de un contrato a otro """
     try:
@@ -230,7 +253,8 @@ def mover_equipo_entre_contratos(
 def retirar_equipo_de_contrato(
     contrato_id:int,
     equipo_id:int,
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user = Depends(require_roles(["superuser", "admin"]))
 ):
     """ Retirar equipo un contrato (dar de baja)"""
     try:

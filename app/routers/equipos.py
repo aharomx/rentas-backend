@@ -6,6 +6,7 @@ from app.database import get_db
 from app.schemas.equipo import EquipoCreate, EquipoUpdate, EquipoResponse
 from app.crud import equipo as crud_equipo
 from app.crud import modelo_impresora as crud_modelo
+from app.security import get_current_user,require_roles
 
 
 router = APIRouter(prefix="/equipos", tags=["Equipos"])
@@ -15,13 +16,18 @@ def read_equipos(
     skip:int=0,
     limit:int=100,
     estado:Optional[str]=None,
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """ Obtener una lista de equipos con paginación y filtro por estad """
     return crud_equipo.get_equipos(db, skip=skip, limit=limit, estado=estado)
 
 @router.get("/{equipo_id}", response_model=EquipoResponse)
-def read_equipo(equipo_id:int, db:Session=Depends(get_db)):
+def read_equipo(
+    equipo_id:int, 
+    db:Session=Depends(get_db),
+    current_user=Depends(get_current_user)
+):
     """ Obtener un equipo por us id """
 
     db_equipo = crud_equipo.get_equipo(db, equipo_id)
@@ -34,7 +40,11 @@ def read_equipo(equipo_id:int, db:Session=Depends(get_db)):
     return db_equipo
 
 @router.post("/", response_model=EquipoResponse, status_code=status.HTTP_201_CREATED)
-def create_equipo(equipo:EquipoCreate, db:Session=Depends(get_db)):
+def create_equipo(
+    equipo:EquipoCreate, 
+    db:Session=Depends(get_db),
+    current_user = Depends(require_roles(["superuser", "admin", "coordinador"]))
+):
     """ Crear un nuevo equipo (dar de alta en inventario)"""
 
     # Verificar que el modelo existe
@@ -56,7 +66,12 @@ def create_equipo(equipo:EquipoCreate, db:Session=Depends(get_db)):
     return crud_equipo.create_equipo(db, equipo)
 
 @router.put("/{equipo_id}", response_model=EquipoResponse)
-def update_equipo(equipo_id:int, equipo_update:EquipoUpdate, db:Session=Depends(get_db)):
+def update_equipo(
+    equipo_id:int, 
+    equipo_update:EquipoUpdate, 
+    db:Session=Depends(get_db),
+    current_user = Depends(require_roles(["superuser", "admin", "coordinador"]))
+):
     """ Actualizar un equipo existente (estado o fecha de baja)"""
 
     db_equipo = crud_equipo.update_equipo(db, equipo_id, equipo_update)
@@ -70,7 +85,11 @@ def update_equipo(equipo_id:int, equipo_update:EquipoUpdate, db:Session=Depends(
 
 
 @router.delete("/{equipo_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_equipo(equipo_id:int, db:Session=Depends(get_db)):
+def delete_equipo(
+    equipo_id:int, 
+    db:Session=Depends(get_db),
+    current_user = Depends(require_roles(["superuser", "admin"]))
+):
     """ Eliminar un equipo (borrado físico) """
 
     success = crud_equipo.delete_equipo(db, equipo_id)

@@ -9,6 +9,7 @@ from app.schemas.modelo_impresora import (
     ModeloImpresoraResponse
 )
 from app.crud import modelo_impresora as crud_modelo
+from app.security import get_current_user, require_roles
 
 router = APIRouter(prefix="/modelos", tags=["Modelos de Impresoras"])
 
@@ -17,7 +18,8 @@ def read_modelos(
     skip:int=0,
     limit:int=100,
     es_color:Optional[bool]=None,
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
     """ Obtener lista de modelos con paginacion y filtro por tipo """
 
@@ -25,7 +27,11 @@ def read_modelos(
 
 
 @router.get("/{modelo_id}", response_model=ModeloImpresoraResponse)
-def read_modelo(modelo_id:int, db:Session=Depends(get_db)):
+def read_modelo(
+    modelo_id:int, 
+    db:Session=Depends(get_db),
+    current_user=Depends(get_current_user)
+):
     """ Obtener un modelo por su id """
     db_modelo = crud_modelo.get_modelo(db, modelo_id)
     if not db_modelo:
@@ -37,7 +43,11 @@ def read_modelo(modelo_id:int, db:Session=Depends(get_db)):
 
 
 @router.post("/", response_model=ModeloImpresoraResponse, status_code=status.HTTP_201_CREATED)
-def create_modelo(modelo:ModeloImpresoraCreate, db:Session=Depends(get_db)):
+def create_modelo(
+    modelo:ModeloImpresoraCreate, 
+    db:Session=Depends(get_db),
+    current_user=Depends(require_roles(["superuser","admin"]))
+):
     """ Crear un nuevo modelo de impresora """
     existing=crud_modelo.get_modelo_by_name(db, modelo.nombre_modelo)
     if existing:
@@ -48,7 +58,12 @@ def create_modelo(modelo:ModeloImpresoraCreate, db:Session=Depends(get_db)):
     return crud_modelo.create_modelo(db, modelo)
 
 @router.put("/{modelo_id}", response_model=ModeloImpresoraResponse)
-def update_modelo(modelo_id:int, modelo_update:ModeloImpresoraUpdate, db:Session=Depends(get_db)):
+def update_modelo(
+    modelo_id:int, 
+    modelo_update:ModeloImpresoraUpdate, 
+    db:Session=Depends(get_db),
+    current_user=Depends(require_roles(["superuser","admin"]))
+):
     """ Actualizar un modelo existente """
     db_modelo= crud_modelo.update_model(db, modelo_id, modelo_update)
     if not db_modelo:
@@ -59,7 +74,11 @@ def update_modelo(modelo_id:int, modelo_update:ModeloImpresoraUpdate, db:Session
     return db_modelo
 
 @router.delete("/{modelo_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_modelo(modelo_id:int, db:Session=Depends(get_db)):
+def delete_modelo(
+    modelo_id:int, 
+    db:Session=Depends(get_db),
+    current_user=Depends(require_roles(["superuser","admin"]))
+):
     """ Eliminar un modelo (solo si no tiene equipos asociados)"""
     success = crud_modelo.delete_modelo(db, modelo_id)
     if not success:
