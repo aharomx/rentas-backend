@@ -185,7 +185,7 @@ def cambiar_password(
     """ Cambia la contraseña del usuario autenticado """
     ip, user_agent = _get_client_info(request)
 
-    if not verify_password(payload.password_actual, current_user.password):
+    if not verify_password(payload.password_actual, current_user.password_hash):
         crud_auditoria.registrar_acceso(
             db,
             accion="cambio_password",
@@ -206,7 +206,12 @@ def cambiar_password(
             detail="La nueva contraseña debe tener al menos 8 caracteres"
         )
 
+    
+
     crud_usuario.cambiar_password(db, current_user, payload.password_nueva)
+
+  
+    
 
     crud_auditoria.registrar_acceso(
         db,

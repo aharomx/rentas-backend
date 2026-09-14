@@ -9,7 +9,7 @@ def get_usuario(db:Session,usuario_id:int) -> Optional[Usuario]:
     return db.query(Usuario).filter(Usuario.id==usuario_id).first()
 
 def get_usuario_by_username(db:Session,username:str) -> Optional[Usuario]:
-    return db.query(Usuario).filter(Usuario.username==username),first()
+    return db.query(Usuario).filter(Usuario.username==username).first()
 
 def get_usuario_by_email(db:Session, email:str) -> Optional[Usuario]:
     return db.query(Usuario).filter(Usuario.email==email).first()
@@ -33,7 +33,7 @@ def create_usuario(
     db_usuario=Usuario(
         username=usuario.username,
         email=usuario.email,
-        passwor_hash=hash_password(usuario.password),
+        password_hash=hash_password(usuario.password),
         nombre_completo=usuario.nombre_completo,
         telefono=usuario.telefono,
         rol=usuario.rol,
@@ -63,8 +63,8 @@ def update_usuario(
 
 
 def cambiar_password(db:Session,usuario:Usuario,nueva_password:str)-> Usuario:
-    usuario.password_hash == hash_password(nueva_password)
-    usuario.requiere_cambio_password=False
+    usuario.password_hash = hash_password(nueva_password)
+    usuario.requiere_cambio_password = False
     db.commit()
     db.refresh(usuario)
     return usuario

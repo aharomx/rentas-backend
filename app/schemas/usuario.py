@@ -27,7 +27,7 @@ class UsuarioResponse(UsuarioBase):
     id:int
     activo:bool
     requiere_cambio_password:bool
-    ultimo_acceso:datetime
+    ultimo_acceso:Optional[datetime]=None
     creado_por:Optional[int]=None
 
     class Config:

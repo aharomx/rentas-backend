@@ -232,7 +232,7 @@ def delete_usuario(
     db_usuario.activo=False
     db.commit()
 
-    ip, user_agent=_get_cliente_info
+    ip, user_agent=_get_cliente_info(request)
     crud_auditoria.registrar_acceso(
         db,
         accion="desactivar usuario",
