@@ -7,6 +7,8 @@ from app.models import (
     Cliente, DireccionCliente, ContactoCliente,
     ModeloImpresora, Equipo,
     TipoPlan, Contrato, ContratoEquipo, MovimientoEquipo,
+    LecturaContador, OrdenLectura,
+    Usuario, AuditoriaAcceso
 )
 
 # ⭐ CREAR TABLAS SI NO EXISTEN
@@ -16,7 +18,8 @@ Base.metadata.create_all(bind=engine)
 from app.routers import (
     clientes, modelos, equipos, 
     tipos_plan, contratos, movimientos,
-    auth, usuarios
+    auth, usuarios,
+    ordenes_lectura, lecturas
 )
 
 app = FastAPI(
@@ -43,6 +46,8 @@ app.include_router(equipos.router)
 app.include_router(tipos_plan.router)
 app.include_router(contratos.router)
 app.include_router(movimientos.router)
+app.include_router(ordenes_lectura.router)
+app.include_router(lecturas.router)
 
 @app.get("/")
 def root():

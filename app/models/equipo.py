@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, Date, DECIMAL
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -13,6 +13,11 @@ class Equipo(Base):
     estado = Column(String(30), default="disponible") # disponible, rentado, reparación
     fecha_alta = Column(TIMESTAMP, server_default=func.now())
     fecha_baja = Column(TIMESTAMP, nullable=True)
+
+    # Próximos Mantenimientos
+    proximo_mantenimiento_contador = Column(Integer,nullable=True)
+    proximo_mantenimiento_fecha = Column(Date, nullable=True)
+    ultimo_mantenimiento_fecha = Column(Date, nullable=True)
 
     # Relación
     modelo = relationship("ModeloImpresora")
