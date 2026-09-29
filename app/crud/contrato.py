@@ -78,13 +78,24 @@ def create_contrato(db:Session, contrato:ContratoCreate):
         if equipo.estado != "disponible":
             raise ValueError(f"Equipo {equipo.numero_serie} no está dispobible")
 
+        # Validar si el equipo es monocromático, no traiga contador color
+        es_color=equipo.modelo.es_color if equipo.modelo else False
+
+        if not es_color and equipo_data.contador_inicial_color not in (None,0):
+            raise ValueError(
+                f"El equipo {equipo.numero_serie} es monocromático, "
+                f"No debe tenedr contador de color"
+            )
+
         # Crear relación contrato-equipo
         db_contrato_equipo = ContratoEquipo(
             id_contrato=db_contrato.id,
             id_equipo=equipo_data.id_equipo,
             fecha_ingreso=contrato.fecha_inicio,
-            contador_inicial_contrato=equipo_data.contador_inicial_contrato,
-            contador_actual=equipo_data.contador_inicial_contrato,
+            contador_inicial_mono=equipo_data.contador_inicial_mono,
+            contador_inicial_color=equipo_data.contador_inicial_color or 0,
+            contador_actual_mono=equipo_data.contador_actual_mono,
+            contador_actual_color=equipo_data.contador_actual_color or 0,
             ubicacion=equipo_data.ubicacion
         )
 
@@ -134,7 +145,8 @@ def mover_equipo_contrato(
         equipo_id:int,
         contrato_origen_id:int,
         contrato_destino_id:int,
-        nuevo_contador_inicial:int,
+        nuevo_contador_inicial_mono:int,
+        nuevo_contador_inicial_color:Optional[int]=0,
         nueva_ubicacion:Optional[str]=None
 ):
     """ Mover un equipo de un contrato a otro """
@@ -161,20 +173,50 @@ def mover_equipo_contrato(
     if not contrato_destino:
         raise ValueError("Contrato destino no encontrado")
 
+
+    if not contrato_destino.activo:
+        raise ValueError("El contrato destino no está activo")
+
+    # Verificar que no esté ya en el destino
+    ya_en_destino=db.query(ContratoEquipo).filter(
+        and_(
+            ContratoEquipo.id_contrato==contrato_destino_id,
+            ContratoEquipo.id_equipo==equipo_id,
+            ContratoEquipo.activo==False
+        )
+    ).first()
+
+
+    if ya_en_destino:
+        raise ValueError(
+            " El equipo ya está activado en el contrato destino"
+        )
+
+
     # Dar de baja en contrato origen
     contrato_equipo_origen.activo = False
     contrato_equipo_origen.fecha_baja=date.today()
+
+    # Validar monocromático
+    es_color=equipo.modelo.es_color if equipo.modelo else False
+    if not es_color:
+        nuevo_contador_inicial_color=0
 
     # Dar de alta en contrato destino
     nuevo_contrato_equipo = ContratoEquipo(
         id_contrato=contrato_destino_id,
         id_equipo=equipo_id,
         fecha_ingreso=date.today(),
-        contador_inicial_contrato=nuevo_contador_inicial,
-        contador_actual=nuevo_contador_inicial,
+        contador_inicial_mono=nuevo_contador_inicial_mono,
+        contador_inicial_color=nuevo_contador_inicial_color or 0,
+        contador_actual_mono=nuevo_contador_inicial_mono,
+        contador_actual_color=nuevo_contador_inicial_color or 0,
         ubicacion=nueva_ubicacion or contrato_equipo_origen.ubicacion
     ) 
     db.add(nuevo_contrato_equipo)
+
+    # El equipo sigue rentado (ahora en el nuevo contrato)
+    equipo.estado="rentado"
 
     # Registrar movimiento de transferencia
     movimiento = MovimientoEquipo(
@@ -187,6 +229,7 @@ def mover_equipo_contrato(
     db.add(movimiento)
 
     db.commit()
+    db.refresh(nuevo_contrato_equipo)
     return nuevo_contrato_equipo
 
 # =================== FUNCIONES ADICIONALES PARA CONTRATO-EQUIPO ==========================
@@ -194,8 +237,11 @@ def mover_equipo_contrato(
 def agregar_equipo_a_contrato(db:Session, contrato_id:int, equipo_data:ContratoCreate):
     """ Agregar un equipo a un contrato existente """
 
+    from sqlalchemy import and_
+
     # Verificar que el contrato existe y está activo
     contrato = get_contrato(db, contrato_id)
+
     if not contrato:
         raise ValueError("Contrato no encontrado")
 
@@ -207,27 +253,41 @@ def agregar_equipo_a_contrato(db:Session, contrato_id:int, equipo_data:ContratoC
     if not equipo:
         raise ValueError("Equipo no encontrado")
 
-    # Verificar que equipo está disponible
-    if equipo.estado != "disponible":
-        raise ValueError(f"El equipo {equipo.numero_serie} no está disponible")
 
-    # Verificar que el equipo no está ya en otro contrato activo.
     existe_en_contrato = db.query(ContratoEquipo).filter(
         and_(
-            ContratoEquipo.id_equipo == equipo_data.id_equipo,
-            ContratoEquipo.activo == True
+            ContratoEquipo.id_equipo==equipo_data.id_equipo,
+            ContratoEquipo.activo==True
         )
     ).first()
 
     if existe_en_contrato:
-        raise ValueError(f"El equipo ya está asignado al contrato {existe_en_contrato.id_contrato}")
+        raise ValueError(
+            f"El equipo {equipo.numero_serie} ya está asignado activamente al contrato"
+            f"{existe_en_contrato.id_contrato}. Debe retirarlo primero"
+        )
 
+    if equipo.estado != "disponible":
+        raise ValueError(
+            f"El equipo {equipo.numero_serie} no está disponible"
+            f"(estado actual: {equipo.estado})"
+        )
 
+    # Validar monocromático
+    es_color = equipo.modelo.es_color if equipo.model else False
+    if not es_color and equipo_data.contador_inicial_color not in (None,0):
+        raise ValueError(f"El equipo {equipo.numero_serie} es monocromático")
+
+    
     # Crear relación contrato-equipo
     db_contrato_equipo = ContratoEquipo(
         id_contrato=contrato_id,
         id_equipo=equipo_data.id_equipo,
         fecha_ingreso=date.todat(),
+        contador_inicial_mono=equipo_data.contador_inicial_mono,
+        contador_inicial_color=equipo_data.contador_incial_color or 0,
+        contador_actual_mono=equipo_data.contador_inicial_mono,
+        contador_atual_color=equipo_data.contador_inicial_color or 0,
         contador_inicial_contrato=equipo_data.contador_incial_contrato,
         contacdor_actual=equipo_data.contador_inicia_contrato,
         ubicacion=equipo_data.ubicacion
@@ -254,7 +314,14 @@ def agregar_equipo_a_contrato(db:Session, contrato_id:int, equipo_data:ContratoC
 
 
 def retirar_equipo_de_contrato(db:Session, contrato_id:int, equipo_id:int):
-    """ Retirar un equipode un contrato """
+    """ 
+        Retirar un equipo de un contrato 
+        Actualiza correctamente el estado del equipo basándose en si sigue en otro contrato
+    """
+
+    from sqlalchemy import and_
+
+
 
     # Buscar la relación activa
     contrato_equipo = db.query(ContratoEquipo).filter(
@@ -272,22 +339,36 @@ def retirar_equipo_de_contrato(db:Session, contrato_id:int, equipo_id:int):
     contrato_equipo.activo = False
     contrato_equipo.fecha_baja = date.today()
 
+    # Verificar si el equipo sigue en otro contrato activo
+    otro_contrato_activo=db.query(ContratoEquipo).filter(
+        and_(
+            ContratoEquipo.id_equipo==equipo_id,
+            ContratoEquipo.activo==True,
+            ContratoEquipo.id != contrato_equipo.id # Excluir el que acabamos de dar de baja
+        )
+    ).first()
+
+
+
     # Actualizar estado del equipo
     equipo=db.query(Equipo).filter(Equipo.id==equipo_id).first()
     if equipo:
-        equipo.estado = "disponible"
+        if otro_contrato_activo:
+            equipo.estado = "rentado"
+        else:
+            equipo.estado="disponible"
 
-        # Registrar Movimiento
-        movimiento=MovimientoEquipo(
-            id_equipo=equipo_id,
-            id_contrato_origen=contrato_id,
-            id_contrato_destino=None,
-            tipo_movimiento="baja",
-            observaciones=f"Baja del contrato {contrato_id}"
-        )
-        db.add(movimiento)
+    # Registrar Movimiento
+    movimiento=MovimientoEquipo(
+        id_equipo=equipo_id,
+        id_contrato_origen=contrato_id,
+        id_contrato_destino=None,
+        tipo_movimiento="baja",
+        observaciones=f"Baja del contrato {contrato_id}"
+    )
+    db.add(movimiento)
 
-        db.commit()
-        db.refresh(contrato_equipo)
-        return contrato_equipo
+    db.commit()
+    db.refresh(contrato_equipo)
+    return contrato_equipo
     

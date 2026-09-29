@@ -21,3 +21,4 @@ class Equipo(Base):
 
     # Relación
     modelo = relationship("ModeloImpresora")
+    

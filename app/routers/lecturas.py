@@ -9,7 +9,7 @@ from app.schemas.lectura_contador import (
     CorreccionLecturaRequest
 )
 from app.crud import lectura_contador as crud_lecturas
-from app.crud import contrato_equipo as crud_ce
+from app.crud import contrato as crud_ce
 from app.security import get_current_user, require_roles
 
 
@@ -132,7 +132,8 @@ def read_equipos_sin_lectura(
             "id_equipo":ce.id_equipo,
             "numero_serie":ce.equipo.numero_serie if ce.equipo else None,
             "ubicacion":ce.ubicacion,
-            "contador_actual":ce.contador_actual
+            "contador_actual_mono":ce.contador_actual_mono,
+            "contador_actual_color":ce.contador_actual_color
         }
         for ce in equipos
     ]

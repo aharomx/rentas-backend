@@ -82,13 +82,13 @@ def create_lectura(db:Session, lectura:LecturaContadorCreate, capturada_por_id:i
     ce=db.query(ContratoEquipo).filter(ContratoEquipo.id==lectura.id_contrato_equipo).first()
 
     if not ce:
-        raise ValueError("Contrato-equipo no encontrado")
+        raise ValueError("Contrato-equipo no encontrado") 
 
     # Verificar que no existe una lectura del mismo mes
     if existe_lectura_en_fecha(db, lectura.id_contrato_equipo, lectura.fecha_lectura):
         raise ValueError("Ya existe una lectura para este tipo en el mes especificado. Use corrección.")
 
-    db_lectura=LecturaContador(
+    db_lectura = LecturaContador(
         id_contrato_equipo=lectura.id_contrato_equipo,
         id_orden_lectura=lectura.id_orden_lectura,
         fecha_lectura=lectura.fecha_lectura,
@@ -100,7 +100,7 @@ def create_lectura(db:Session, lectura:LecturaContadorCreate, capturada_por_id:i
         porcentaje_toner_negro=lectura.porcentaje_toner_negro,
         porcentaje_toner_amarillo=lectura.porcentaje_toner_amarillo,
         porcentaje_toner_magenta=lectura.porcentaje_toner_magenta,
-        porcentake_toner_cyan=lectura.porcentaje_toner_cyan,
+        porcentaje_toner_cyan=lectura.porcentaje_toner_cyan,
         porcentaje_unidad_imagen=lectura.porcentaje_unidad_imagen,
         observaciones=lectura.observaciones,
         capturada_por=capturada_por_id
@@ -108,31 +108,43 @@ def create_lectura(db:Session, lectura:LecturaContadorCreate, capturada_por_id:i
 
     # Calcular impresiones del mes (solo si tipo es "contadores")
     if lectura.tipo_lectura=="contadores":
-        contador_anterior=ce.contador_actual or ce.contador_inicial_contrato or 0
 
-        db_lectura.contador_anterior_mono = contador_anterior
+        contador_anterior_mono=ce.contador_actual_mono or ce.contador_incial_mono or 0
+        db_lectura.contador_anterior_mono=contador_anterior_mono
 
         if lectura.contador_mono is not None:
-            if lectura.contador_mono < contador_anterior:
+            if lectura.contador_mono < contador_anterior_mono:
                 raise ValueError(
-                    f"El contador nuevo ({lectura.contador_mono}) no puede ser mayor"
-                    f"al anterior ({contador_anterior})"
+                    f"El contador mono nuevo ({lectura.contador_mono} no puede ser menor)"
+                    f"al anterior ({contador_anterior_mono})"
                 )
+            db_lectura.impresiones_mes_mono = lectura.contador_mono - contador_anterior_mono
+            ce.contador_actual_mono=lectura.contador_mono
 
-            db_lectura.impresiones_mes_mono=lectura.contador_mono-contador_anterior
-            ce.contador_actual=lectura.contador_mono
+            es_color=ce.equipo.modelo.es_color if ce.equipo and ce.equipo.modelo else False
 
-        if lectura.contador_color is not None:
-            contador_color_anterior=ce.contador_color_actual or 0
-            db_lectura.contador_anterior_color=contador_color_anterior
-            if lectura.contador_color<contador_color_anterior:
-                raise ValueError(
-                    f"EL contador color nuevo ({lectura.contador_color}) no puede ser menor"
-                    f"al anterior ({contador_color_anterior})"
-                )
-            db_lectura.impresiones_mes_color=lectura.contador_color-contador_color_anterior
+        # ---------- COLOR -----------------
+        # Determinar si el equipo es a color
+        
+        es_color=False
+        if ce.equipo and ce.equipo.modelo:
+            es_color=bool(ce.equipo.modelo.es_color)
 
+        
+        if es_color:
+            contador_anterior_color=ce.contador_actual_color 
 
+            if lectura.contador_color is not None:
+                if lectura.contador_color  < contador_anterior_color:
+                    raise ValueError(
+                        f"El contador color nuevo ({lectura.contador_color}) no puede ser menor"
+                        f"al anterior ({contador_anterior_color})"
+                    )
+                db_lectura.contador_anterior_color = contador_anterior_color
+                db_lectura.impresiones_mes_color=lectura.contador_color-contador_anterior_color
+                ce.contador_actual_color = lectura.contador_color
+            
+   
     # Para tipo "impresiones_directas"
     elif lectura.tipo_lectura=="impresiones_directas":
         db_lectura.impresiones_mes_mono = lectura.impresiones_directas_mono or 0
@@ -142,6 +154,7 @@ def create_lectura(db:Session, lectura:LecturaContadorCreate, capturada_por_id:i
     db.add(db_lectura)
     db.commit()
     db.refresh(db_lectura)
+    db.refresh(ce)
     return db_lectura
 
 def corregir_lectura(
@@ -164,19 +177,19 @@ def corregir_lectura(
         tipo_lectura=lectura_original.tipo_lectura,
         contador_mono=correcion.contador_mono or lectura_original.contador_mono,
         contador_color=correcion.contador_color or lectura_original.contador_color,
-        impresiones_directas_mono=correcion.impresiones_directas_mono or lectura_original.impresines_directas_mono,
+        impresiones_directas_mono=correcion.impresiones_directas_mono or lectura_original.impresiones_directas_mono,
         impresiones_directas_color=correcion.impresiones_directas_color or lectura_original.impresiones_directas_color,
         porcentaje_toner_negro=correcion.porcentaje_toner_negro or lectura_original.porcentaje_toner_negro,
         porcentaje_toner_amarillo=correcion.porcentaje_toner_amarillo or lectura_original.porcentaje_toner_amarillo,
         porcentaje_toner_magenta=correcion.porcentaje_toner_magenta or lectura_original.porcentaje_toner_magenta,
         porcentaje_toner_cyan=correcion.porcentaje_toner_cyan or lectura_original.porcentaje_toner_cyan,
-        porcentaje_unidad_imagen=correcion.porcentaje_unidad_imagen or lectura_original.porcentake_unidad_imagen,
+        porcentaje_unidad_imagen=correcion.porcentaje_unidad_imagen or lectura_original.porcentaje_unidad_imagen,
         observaciones=correcion.observaciones or lectura_original.observaciones,
         capturada_por=capturada_por_id,
         es_correccion=True,
         lectura_original_id=lectura_id,
-        motivo_correccion=correcion.motivo_correcion,
-        contador_anterio_mono=lectura_original.contador_anterior_mono,
+        motivo_correccion=correcion.motivo_correccion,
+        contador_anterior_mono=lectura_original.contador_anterior_mono,
         contador_anterior_color=lectura_original.contador_anterior_color
     )
 
@@ -198,20 +211,20 @@ def corregir_lectura(
 
 
 def get_equipos_sin_lectura(
-        db:Session,
-        mes:int,
-        anio:int
+    db: Session,
+    mes: int,
+    anio: int
 ) -> List[ContratoEquipo]:
-    """ Obtiene equipos activos que no tienen lectura en el mes específico """
-
-    from sqlalchemy import and_, not_, exists
-
-    subquery=db.query(LecturaContador.id_contrato_equipo).filter(
-        extract('month',LecturaContador.fecha_lectura)==mes,
-        extract('year',LecturaContador.fecha_lectura)==anio
+    """Obtiene equipos activos que NO tienen lectura en el mes especificado."""
+    
+    # Subquery: IDs de contrato_equipo que SÍ tienen lectura en el mes
+    subquery = db.query(LecturaContador.id_contrato_equipo).filter(
+        extract('month', LecturaContador.fecha_lectura) == mes,
+        extract('year', LecturaContador.fecha_lectura) == anio
     ).subquery()
-
+    
+    # Query: contrato_equipos activos que NO están en la subquery
     return db.query(ContratoEquipo).filter(
-        ContratoEquipo.activo==True,
-        ContratoEquipo.id.in_(subquery)
+        ContratoEquipo.activo == True,
+        ~ContratoEquipo.id.in_(subquery)   # ✅ NEGACIÓN
     ).all()

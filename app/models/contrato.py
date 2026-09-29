@@ -37,7 +37,22 @@ class Contrato(Base):
     # Relaciones
     cliente = relationship("Cliente", back_populates="contratos")
     tipo_plan = relationship("TipoPlan")
-    equipos_asignados = relationship("ContratoEquipo", back_populates="contrato", cascade="all, delete-orphan")
+
+    # Equipos activos para vista normal
+    equipos_asignados = relationship(
+        "ContratoEquipo", 
+        primaryjoin="and_(Contrato.id == ContratoEquipo.id_contrato, ContratoEquipo.activo==True)",
+        viewonly=True,
+        order_by="ContratoEquipo.id"
+    )
+
+    # Todos los equipos activos e inactivos para historial
+    todos_equipos=relationship(
+        "ContratoEquipo",
+        back_populates="contrato",
+        cascade="all, delete-orphan",
+        foreign_keys="ContratoEquipo.id_contrato"
+    )
     movimientos = relationship("MovimientoEquipo", foreign_keys="MovimientoEquipo.id_contrato_origen", back_populates="contrato_origen")
 
 

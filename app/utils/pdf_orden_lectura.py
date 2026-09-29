@@ -5,6 +5,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 )
+from reportlab.platypus import Paragraph
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 from sqlalchemy.orm import Session
@@ -16,8 +17,18 @@ from app.models.contrato_equipo import ContratoEquipo
 from app.models.lectura_contador import LecturaContador
 
 
+# Helper para obtener el contador más reciente
+def _get_contador_valor(actual, inicial):
+    """Devuelve el contador actual si existe, si no el inicial, si no 'N/A'."""
+    if actual is not None:
+        return str(actual)
+    if inicial is not None:
+        return str(inicial)
+    return "N/A"
+
 def generar_cedula_lectura(db: Session, orden_id: int, output_dir: str = "pdfs") -> str:
     """Genera el PDF de la cédula de lectura ordenada por ubicación."""
+
     
     # Crear directorio si no existe
     os.makedirs(output_dir, exist_ok=True)
@@ -41,9 +52,47 @@ def generar_cedula_lectura(db: Session, orden_id: int, output_dir: str = "pdfs")
     doc = SimpleDocTemplate(filename, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
     
     styles = getSampleStyleSheet()
+
+
+    estilo_celda=ParagraphStyle(
+        'CeldaTabla',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=9,          # Interlineado (menos que fotSize = más compacto)
+        alignment=TA_LEFT,  # Alineación izquierda
+        wordwrap='CJK'      # Envuelve palabras largas in espacio
+    )
+
+    estilo_celda_izq=ParagraphStyle(
+        'CeldaIzq',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=9,
+        alignment=TA_LEFT,
+        wordWrap='CJK'
+    )
+
+
+    estilo_celda_centro=ParagraphStyle(
+        'CeldaTablaCentro',
+        parent=estilo_celda,
+        alignment=TA_CENTER
+    )
+
+    estilo_encabezado=ParagraphStyle(
+        'Encabezado',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=9,
+        alignment=TA_CENTER,
+        textColor=colors.whitesmoke,
+        fontName='Helvetica-Bold'
+    )
+
     titulo_style = ParagraphStyle(
         'Titulo', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, spaceAfter=6
     )
+    
     subtitulo_style = ParagraphStyle(
         'Subtitulo', parent=styles['Heading2'], fontSize=12, spaceAfter=4
     )
@@ -71,38 +120,64 @@ def generar_cedula_lectura(db: Session, orden_id: int, output_dir: str = "pdfs")
     elementos.append(tabla_contrato)
     elementos.append(Spacer(1, 0.3*inch))
     
+
+ 
     # Tabla de equipos (ordenada por ubicación)
     encabezados = [
-        "Ubicación", "No. Serie", "Modelo", 
-        "Contador\nActual", "Contador\nNuevo", 
-        "% Tóner\nNegro", "% Tóner\nColor", "% U.\nImagen"
+        Paragraph("Ubicación", estilo_encabezado),
+        Paragraph("No. Serie", estilo_encabezado),
+        Paragraph("Modelo", estilo_encabezado),
+        Paragraph("Contador,<br/>Actual<br/>Mono", estilo_encabezado),
+        Paragraph("Contador,<br/>Nuevo<br/>Mono", estilo_encabezado),
+        Paragraph("Contador,<br/>Actual<br/>Color", estilo_encabezado),
+        Paragraph("Contador,<br/>Nuevo<br/>Color", estilo_encabezado),
     ]
-    
+
     filas = [encabezados]
-    
+
     for ce in equipos:
-        # Buscar última lectura para conocer contador actual
-        ultima = db.query(LecturaContador).filter(
-            LecturaContador.id_contrato_equipo == ce.id
-        ).order_by(LecturaContador.fecha_lectura.desc()).first()
+        # Determinar si el equipo es a color
+        es_color = ce.equipo.modelo.es_color if ce.equipo and ce.equipo.modelo else False
         
-        contador_actual = ce.contador_actual or ce.contador_inicial_contrato or "N/A"
+        # Contadores mono (siempre aplican)
+        contador_actual_mono = _get_contador_valor(
+            ce.contador_actual_mono, 
+            ce.contador_inicial_mono
+        )
+        
+        # Contadores color (solo si es color)
+        contador_actual_color = _get_contador_valor(
+            ce.contador_actual_color,
+            ce.contador_inicial_color
+        ) if es_color else "-"
         
         filas.append([
-            ce.ubicacion or "Sin ubicación",
-            ce.equipo.numero_serie if ce.equipo else "N/A",
-            ce.equipo.modelo.nombre_modelo if ce.equipo and ce.equipo.modelo else "N/A",
-            str(contador_actual),
-            "",  # Contador nuevo (para escribir a mano)
-            "",  # % Tóner Negro
-            "",  # % Tóner Color
-            "",  # % U. Imagen
+            Paragraph(ce.ubicacion or "Sin ubicación", estilo_celda_izq),
+            Paragraph(ce.equipo.numero_serie if ce.equipo else "N/A", estilo_celda_izq),
+            Paragraph(
+                ce.equipo.modelo.nombre_modelo if ce.equipo and ce.equipo.modelo else "N/A",
+                estilo_celda_izq
+            ),
+            Paragraph(contador_actual_mono, estilo_celda_centro),
+            Paragraph("", estilo_celda_centro),
+            Paragraph(contador_actual_color, estilo_celda_centro),
+            Paragraph("", estilo_celda_centro),
         ])
-    
+
+    # Agregamos un total de equipos
+    total_equipos=len(equipos)
+    filas.append(["","", f"Total: {total_equipos} equipos", "","","",""])
+
     tabla_equipos = Table(filas, colWidths=[
-        1.8*inch, 1.1*inch, 1.3*inch, 0.7*inch, 0.7*inch, 0.6*inch, 0.6*inch, 0.6*inch
+        1.5*inch, 
+        0.9*inch, 
+        1.9*inch, 
+        0.7*inch, 
+        0.7*inch, 
+        0.7*inch, 
+        0.7*inch
     ], repeatRows=1)
-    
+
     tabla_equipos.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -116,9 +191,11 @@ def generar_cedula_lectura(db: Session, orden_id: int, output_dir: str = "pdfs")
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
     ]))
-    
+
     elementos.append(tabla_equipos)
     elementos.append(Spacer(1, 0.3*inch))
+
+
     
     # Firmas
     firma_data = [

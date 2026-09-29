@@ -256,7 +256,10 @@ def retirar_equipo_de_contrato(
     db:Session=Depends(get_db),
     current_user = Depends(require_roles(["superuser", "admin"]))
 ):
-    """ Retirar equipo un contrato (dar de baja)"""
+    """ 
+        Retirar equipo un contrato (dar de baja)
+    """
+   
     try:
         from app.crud import contrato as crud_contrato_full
 
@@ -267,8 +270,25 @@ def retirar_equipo_de_contrato(
             "equipo_id":equipo_id,
             "fecha_baja":resultado.fecha_baja
         }
+    
     except ValueError as e:
         raise HTTPException(
             status_code=400,
             detail=str(e)
         )
+
+@router.get("/{contrato_id}/equipos-historial")
+def read_equipos_historial(
+    contrato_id:int,
+    db:Session=Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """ Historial completo de equipos del contrato (activos e inactivos)"""
+    contrato=crud_contrato.get_contrato(db,contrato_id)
+    if not contrato:
+        raise HTTPException(
+            status_code=404, 
+            detail="Contrato no encontrado"
+        )
+
+    return contrato.todos_equipos

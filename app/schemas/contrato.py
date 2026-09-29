@@ -8,7 +8,10 @@ from app.schemas.equipo import EquipoResponse
 # =========== CONTRATO EQUIPO ===================
 class ContratoEquipoBase(BaseModel):
     id_equipo:int
-    contador_inicial_contrato: int
+    contador_inicial_mono: int
+    contador_inicial_color: Optional[int]=0
+    contador_actual_mono: Optional[int]=0
+    contador_actual_color: Optional[int]=0
     ubicacion: Optional[str]=None
 
 
@@ -19,7 +22,10 @@ class ContratoEquipoResponse(ContratoEquipoBase):
     id:int
     id_contrato:int 
     fecha_ingreso:date 
-    contador_actual:Optional[int]=None
+    contador_inicial_mono:Optional[int]=None
+    contador_inicial_color:Optional[int]=None
+    contador_actual_mono:Optional[int]=None
+    contador_actual_color:Optional[int]=None
     activo:bool 
     fecha_baja:Optional[date]=None
     equipo:Optional[EquipoResponse]=None

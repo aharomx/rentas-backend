@@ -25,4 +25,4 @@ class EquipoResponse(EquipoBase):
 
     class Config:
         from_attributes = True
-        
+         
