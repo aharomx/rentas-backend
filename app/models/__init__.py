@@ -9,3 +9,8 @@ from app.models.lectura_contador import LecturaContador
 from app.models.orden_lectura import OrdenLectura  # NUEVO
 from app.models.usuario import Usuario
 from app.models.auditoria_acceso import AuditoriaAcceso
+from app.models.mantenimiento import Mantenimiento
+from app.models.mantenimiento_refaccion import MantenimientoRefaccion
+from app.models.matenimiento_equipo import MantenimientoEquipo
+from app.models.articulo import Articulo
+

@@ -8,7 +8,8 @@ from app.models import (
     ModeloImpresora, Equipo,
     TipoPlan, Contrato, ContratoEquipo, MovimientoEquipo,
     LecturaContador, OrdenLectura,
-    Usuario, AuditoriaAcceso
+    Usuario, AuditoriaAcceso, Articulo, MantenimientoEquipo,
+    MantenimientoRefaccion, Mantenimiento
 )
 
 # ⭐ CREAR TABLAS SI NO EXISTEN
