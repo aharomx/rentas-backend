@@ -28,23 +28,29 @@ from app.schemas.mantenimiento_refaccion import (
 
 # ==================== GENERACION DE FOLIO =======================
 def _generar_folio(db:Session) -> str:
-    """ Genera folio único por año: MANT-2026-0001"""
+    """ Genera folio único por año: MANT-2026-0001 con manejo de concurrencias"""
+
+    from sqlalchemy import func as sql_func
+    from sqlalchemy import text
+
     anio_actual=datetime.now().year
-    prefijo=f"MANT-{anio_actual}"
+    prefijo=f"MANT-{anio_actual}-"
 
-    # Buscar el último folio del año actual
-    ultimo=db.query(Mantenimiento).filter(
-        Mantenimiento.folio.like(f"{prefijo}")
-    ).order_by(Mantenimiento.folio.desc()).first()
+    # Usar un lock a nivel de tabla para evitar colisiones
+    db.execute(text('LOCK TABLE mantenimientos IN EXCLUSIVE MODE'))
 
-    if ultimo:
-        #Extraer número y sumar 1
-        ultimo_num=int(ultimo.folio.split("-")[-1])
-        nuevo_num=ultimo_num+1
-    else:
-        nuevo_num=1
+    # Contar cuantos hay en el año actual
+    count=db.query(sql_func.count(Mantenimiento.id)).filter(
+        Mantenimiento.folio.ilike(f"{prefijo}%")
+    ).scalar() or 0
 
-    return f"{prefijo}{nuevo_num:04d}"
+    nuevo_num=count+1
+    folio_final=f"{prefijo}{nuevo_num:04d}"
+
+    #print(f"Folio generado: {folio_final} (total previos: {count})")
+
+    return folio_final
+    
 
 
 # ============== LECTURA ========================
@@ -57,12 +63,12 @@ def get_mantenimiento(
         joinedload(Mantenimiento.equipos)
         .joinedload(MantenimientoEquipo.equipo)
         .joinedload(Equipo.modelo),
-        joinedload(MantenimientoEquipo.refacciones)
+        joinedload(Mantenimiento.equipos)
+        .joinedload(MantenimientoEquipo.refacciones)
         .joinedload(MantenimientoRefaccion.articulo),
         joinedload(Mantenimiento.contrato),
         joinedload(Mantenimiento.tecnico_asignado_user),
-    ).filter(Mantenimiento.id==mantenimiento_id).first()
-
+    ).filter(Mantenimiento.id == mantenimiento_id).first()
 
 def get_mantenimientos(
         db:Session,
@@ -92,7 +98,7 @@ def get_mantenimientos(
     if anio:
         query=query.filter(extract('year',Mantenimiento.fecha_solicitud==anio))
 
-    return query.order_by(Mantenimiento.fecha_solicitud.desc()).offset(skip).limit(limit).all
+    return query.order_by(Mantenimiento.fecha_solicitud.desc()).offset(skip).limit(limit).all()
 
 def get_mantanimientos_pendientes(db:Session) -> List[Mantenimiento]:
     """ Mantenimientos programados o en solicitud, listos para trabajar """
@@ -139,7 +145,7 @@ def get_servicios_por_periodo(
     if fecha_inicio:
         query=query.filter(Mantenimiento.fecha_solicitud>=fecha_inicio)
     if fecha_fin:
-        query=query.filterq(Mantenimiento.fecha_fin<=fecha_fin)
+        query=query.filter(Mantenimiento.fecha_fin<=fecha_fin)
 
     return query.order_by(Mantenimiento.fecha_solicitud.desc()).all()
 
@@ -445,7 +451,7 @@ def agregar_equipo_a_mantenimiento(
         )
 
     # Verificar que no esté ya en el mantenimiento
-    existente=db.query(MantenimientoEquipo),filter(
+    existente=db.query(MantenimientoEquipo).filter(
         and_(
             MantenimientoEquipo.id_mantenimiento==mantenimiento_id,
             MantenimientoEquipo.id_equipo==data.id_equipo
@@ -507,9 +513,12 @@ def delete_mantenimiento_equipo(
 
     db_me=db.query(MantenimientoEquipo).filter(
         MantenimientoEquipo.id==mantenimiento_equipo_id
-    ).firt()
+    ).first()
 
-    db.delete()
+    if not db_me:
+        return False
+
+    db.delete(db_me)
     db.commit()
     return True
 

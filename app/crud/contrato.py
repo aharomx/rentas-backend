@@ -4,7 +4,7 @@ from app.models.contrato import Contrato
 from app.models.contrato_equipo import ContratoEquipo
 from app.models.movimiento_equipo import MovimientoEquipo
 from app.models.equipo import Equipo
-from app.schemas.contrato import ContratoCreate, ContratoUpdate
+from app.schemas.contrato import ContratoCreate, ContratoUpdate, ContratoEquipoCreate
 from typing import List, Optional
 from datetime import date, timedelta
 
@@ -234,71 +234,66 @@ def mover_equipo_contrato(
 
 # =================== FUNCIONES ADICIONALES PARA CONTRATO-EQUIPO ==========================
 
-def agregar_equipo_a_contrato(db:Session, contrato_id:int, equipo_data:ContratoCreate):
-    """ Agregar un equipo a un contrato existente """
-
+def agregar_equipo_a_contrato(db: Session, contrato_id: int, equipo_data: ContratoEquipoCreate):
+    """Agregar un equipo a un contrato existente con validaciones reforzadas."""
     from sqlalchemy import and_
-
-    # Verificar que el contrato existe y está activo
+    
     contrato = get_contrato(db, contrato_id)
-
     if not contrato:
         raise ValueError("Contrato no encontrado")
-
+    
     if not contrato.activo:
         raise ValueError("El contrato no está activo")
-
+    
     # Verificar que el equipo existe
-    equipo=db.query(Equipo).filter(Equipo.id==equipo_data.id_equipo).first()
+    equipo = db.query(Equipo).filter(Equipo.id == equipo_data.id_equipo).first()
     if not equipo:
         raise ValueError("Equipo no encontrado")
-
-
+    
+    # ⭐ VALIDACIÓN CRÍTICA: verificar que no esté activo en NINGÚN contrato
     existe_en_contrato = db.query(ContratoEquipo).filter(
         and_(
-            ContratoEquipo.id_equipo==equipo_data.id_equipo,
-            ContratoEquipo.activo==True
+            ContratoEquipo.id_equipo == equipo_data.id_equipo,
+            ContratoEquipo.activo == True
         )
     ).first()
-
+    
     if existe_en_contrato:
         raise ValueError(
-            f"El equipo {equipo.numero_serie} ya está asignado activamente al contrato"
-            f"{existe_en_contrato.id_contrato}. Debe retirarlo primero"
+            f"El equipo {equipo.numero_serie} ya está asignado activamente al contrato "
+            f"{existe_en_contrato.id_contrato}. Debe retirarlo primero."
         )
-
+    
+    # ⭐ Verificar el estado del equipo
     if equipo.estado != "disponible":
         raise ValueError(
-            f"El equipo {equipo.numero_serie} no está disponible"
+            f"El equipo {equipo.numero_serie} no está disponible "
             f"(estado actual: {equipo.estado})"
         )
-
-    # Validar monocromático
-    es_color = equipo.modelo.es_color if equipo.model else False
-    if not es_color and equipo_data.contador_inicial_color not in (None,0):
-        raise ValueError(f"El equipo {equipo.numero_serie} es monocromático")
-
     
-    # Crear relación contrato-equipo
+    # Validar monocromático vs color
+    es_color = equipo.modelo.es_color if equipo.modelo else False
+    if not es_color and equipo_data.contador_inicial_color not in (None, 0):
+        raise ValueError(f"El equipo {equipo.numero_serie} es monocromático, no acepta contador color")
+    
+    # Crear la relación
     db_contrato_equipo = ContratoEquipo(
         id_contrato=contrato_id,
         id_equipo=equipo_data.id_equipo,
-        fecha_ingreso=date.todat(),
+        fecha_ingreso=date.today(),
         contador_inicial_mono=equipo_data.contador_inicial_mono,
-        contador_inicial_color=equipo_data.contador_incial_color or 0,
+        contador_inicial_color=equipo_data.contador_inicial_color or 0,
         contador_actual_mono=equipo_data.contador_inicial_mono,
-        contador_atual_color=equipo_data.contador_inicial_color or 0,
-        contador_inicial_contrato=equipo_data.contador_incial_contrato,
-        contacdor_actual=equipo_data.contador_inicia_contrato,
-        ubicacion=equipo_data.ubicacion
+        contador_actual_color=equipo_data.contador_inicial_color or 0,
+        ubicacion=equipo_data.ubicacion,
+        activo=True
     )
     db.add(db_contrato_equipo)
-
-
+    
     # Actualizar estado del equipo
-    equipo.estado="rentado"
-
-    #Registrar movimiento
+    equipo.estado = "rentado"
+    
+    # Registrar movimiento
     movimiento = MovimientoEquipo(
         id_equipo=equipo.id,
         id_contrato_origen=None,
@@ -307,7 +302,7 @@ def agregar_equipo_a_contrato(db:Session, contrato_id:int, equipo_data:ContratoC
         observaciones=f"Alta en contrato {contrato_id}"
     )
     db.add(movimiento)
-
+    
     db.commit()
     db.refresh(db_contrato_equipo)
     return db_contrato_equipo

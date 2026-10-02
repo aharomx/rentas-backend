@@ -34,25 +34,25 @@ class Mantenimiento(Base):
     fecha_fin=Column(TIMESTAMP,nullable=True)
 
     # Observaciones
-    observaciones=Column(Text,nullable=True)
-    motivo_cancelacion=Column(Text,nullable=True)
-    motivo_espera=Column(Text,nullable=True) # Para correctivos
+    observaciones = Column(Text, nullable=True)
+    motivo_cancelacion = Column(Text, nullable=True)
+    motivo_espera = Column(Text, nullable=True)
+    descripcion_problema = Column(Text, nullable=True)  # Para correctivos
 
-    fecha_creacion=Column(TIMESTAMP,server_default=func.now())
-    fecha_actuaizacion=Column(TIMESTAMP,server_default=func.now(),onupdate=func.now())
+    fecha_creacion = Column(TIMESTAMP, server_default=func.now())
+    fecha_actualizacion = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     # Relaciones
-    contrato=relationship("Contrato")
-    autorizador=relationship("Usuario",foreign_keys=[autorizado_por])
-    tecnico_asignado_user=relationship("Usuario",foreign_keys=[tecnico_asignado])
-    tecnico_inicio_user=relationship("Usuario",foreign_keys=[tecnico_inicio])
-    tecnico_fin_user=relationship("Usuario",foreign_keys=[tecnico_fin])
-
-    equipos=relationship(
+    contrato = relationship("Contrato")
+    autorizador = relationship("Usuario", foreign_keys=[autorizado_por])
+    tecnico_asignado_user = relationship("Usuario", foreign_keys=[tecnico_asignado])
+    tecnico_inicio_user = relationship("Usuario", foreign_keys=[tecnico_inicio])
+    tecnico_fin_user = relationship("Usuario", foreign_keys=[tecnico_fin])
+    
+    equipos = relationship(
         "MantenimientoEquipo",
         back_populates="mantenimiento",
         cascade="all, delete-orphan",
         order_by="MantenimientoEquipo.id"
     )
-
 

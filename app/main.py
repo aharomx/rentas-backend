@@ -20,7 +20,8 @@ from app.routers import (
     clientes, modelos, equipos, 
     tipos_plan, contratos, movimientos,
     auth, usuarios,
-    ordenes_lectura, lecturas
+    ordenes_lectura, lecturas,
+    articulos, mantenimientos
 )
 
 app = FastAPI(
@@ -49,6 +50,8 @@ app.include_router(contratos.router)
 app.include_router(movimientos.router)
 app.include_router(ordenes_lectura.router)
 app.include_router(lecturas.router)
+app.include_router(articulos.router)
+app.include_router(mantenimientos.router)
 
 @app.get("/")
 def root():

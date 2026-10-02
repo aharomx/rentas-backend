@@ -16,7 +16,7 @@ class MantenimientoBase(BaseModel):
 
 
 class MantenimientoCreate(MantenimientoBase):
-    equipos:Lis[MantenimientoEquipoCreate]=[]
+    equipos:List[MantenimientoEquipoCreate]=[]
 
 
 class MantenimientoUpdate(BaseModel):
@@ -46,43 +46,43 @@ class EsperaRefaccionesRequest(BaseModel):
 
 # ===== RESPUESTA COMPLETA =================
 class MantenimientoResponse(MantenimientoBase):
-    id:int
-    folio:str
-    estado:str 
+    id: int
+    folio: str
+    estado: str
 
-    #Autorización
-    autorizado_por:Optional[int]=None
-    fecha_autorizacion:Optional[datetime]=None
+    # Autorización
+    autorizado_por: Optional[int] = None
+    fecha_autorizacion: Optional[datetime] = None
 
-    #Técnicos
-    tecnico_inicio:Optional[int]=None
-    tecnico_fin:Optional[int]=None
+    # Técnicos
+    tecnico_inicio: Optional[int] = None
+    tecnico_fin: Optional[int] = None
 
-    #Fechas
-    fecha_solicitud:datetime
-    fecha_inicio:Optional[datetime]=None
-    fecha_fin:Optional[datetime]=None
-    fecha_creacion:datetime
-    fecha_actualizacion:datetime
+    # Fechas
+    fecha_solicitud: datetime
+    fecha_inicio: Optional[datetime] = None
+    fecha_fin: Optional[datetime] = None
+    fecha_creacion: datetime
+    fecha_actualizacion: datetime
 
-    #Motivos
-    motivo_cancelacion:Optional[str]=None
-    motivo_espera:Optional[str]=None
+    # Motivos
+    motivo_cancelacion: Optional[str] = None
+    motivo_espera: Optional[str] = None
 
-    #Datos enriqucidos
-    cliente_nombre:Optional[str]=None
-    cliente_id:Optional[int]=None
-    contrato_numero:Optional[int]=None
-    autorizador_nombre:Optional[str]=None
-    tecnico_asignado_nombre:Optional[str]=None
-    tecnico_inicio_nombre:Optional[str]=None
-    tecnico_fin_nombre:Optional[str]=None
+    # Datos enriquecidos
+    cliente_nombre: Optional[str] = None
+    cliente_id: Optional[int] = None
+    contrato_numero: Optional[int] = None
+    autorizador_nombre: Optional[str] = None
+    tecnico_asignado_nombre: Optional[str] = None
+    tecnico_inicio_nombre: Optional[str] = None
+    tecnico_fin_nombre: Optional[str] = None
 
-    #Relaciones
-    equipos:List[MantenimientoEquipoResponse]=[]
+    # Relaciones
+    equipos: List[MantenimientoEquipoResponse] = []
 
     class Config:
-        from_attributes=True
+        from_attributes = True
 
 
 # ============== RESPUESTA RESUMIDA PARA REPORTES ======================
