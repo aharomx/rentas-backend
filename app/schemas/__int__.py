@@ -21,3 +21,13 @@ from app.schemas.articulo import (
     ArticuloUpdate,
     ArticuloResponse
 )
+
+from app.schemas.categoria_articulo import (
+    CategoriaArticuloCreate, CategoriaArticuloUpdate,
+    CategoriaArticuloResponse
+)
+
+from app.schemas.movimiento_almacen import (
+    MovimientoAlmacenCreate, MovimientoAlmacenResponse,
+    KardexItem, StockBajoItem, ResumenMovimientos
+)

@@ -9,7 +9,8 @@ from app.models import (
     TipoPlan, Contrato, ContratoEquipo, MovimientoEquipo,
     LecturaContador, OrdenLectura,
     Usuario, AuditoriaAcceso, Articulo, MantenimientoEquipo,
-    MantenimientoRefaccion, Mantenimiento
+    MantenimientoRefaccion, Mantenimiento,CategoriaArticulo,
+    MovimientoAlmacen
 )
 
 # ⭐ CREAR TABLAS SI NO EXISTEN

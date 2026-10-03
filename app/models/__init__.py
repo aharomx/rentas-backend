@@ -13,4 +13,7 @@ from app.models.mantenimiento import Mantenimiento
 from app.models.mantenimiento_refaccion import MantenimientoRefaccion
 from app.models.matenimiento_equipo import MantenimientoEquipo
 from app.models.articulo import Articulo
+from app.models.categoria_articulo import CategoriaArticulo
+from app.models.movimiento_almacen import MovimientoAlmacen
+
 
