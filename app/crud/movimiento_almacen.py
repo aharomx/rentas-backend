@@ -118,5 +118,24 @@ def create_movimiento(
     return db_mov
 
 
-    
+def get_kardex(
+        db:Session,
+        id_articulo:int,
+        fecha_inicio:Optional[date]=None,
+        fecha_fin:Optional[date]=None,
+        skip:int=0,
+        limit:int=500,
+) -> List[MovimientoAlmacen]:
+    """ Historial completo de movimientos de un artículo (kardex)."""
+
+    return get_movimientos(
+        db,
+        id_articulo=id_articulo,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        skip=skip,
+        limit=limit
+    )
+
+
 
