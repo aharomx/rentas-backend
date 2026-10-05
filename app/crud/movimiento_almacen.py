@@ -106,7 +106,7 @@ def create_movimiento(
         id_solicitud_almacen=data.id_solicitud_almacen,
         id_mantenimiento=data.id_mantenimiento,
         observaciones=data.observaciones,
-        registrado_por_id=registrado_por_id
+        registrado_por=registrado_por_id
     )
     db.add(db_mov)
 
@@ -138,4 +138,53 @@ def get_kardex(
     )
 
 
+def get_articulos_stock_bajo(db:Session) -> List[dict]:
+    """ Articulos cuyo stock_actual es menor o igual al stock_minimo """
+
+    articulos=db.query(Articulo).options(
+        joinedload(Articulo.categoria),
+    ).filter(
+        Articulo.activo==True,
+        Articulo.stock_actual <= Articulo.stock_minimo,
+    ).order_by(Articulo.stock_actual.asc).all()
+
+    return [
+        {
+            "id":a.codigo,
+            "nombre":a.nombre,
+            "tipo":a.tipo,
+            "stock_actual":a.stock_actual,
+            "stock_minimo":a.stock_minimo,
+            "faltante":a.stock_minimo - a.stock_actual,
+            "categoria_nombre":a.categoria.nombre if a.categoria else None
+        }
+        for a in articulos
+    ]
+
+def get_resumen_movimientos(
+        db:Session,
+        fecha_inicio:Optional[date]=None,
+        fecha_fin:Optional[date]=None,
+) -> dict:
+    """ Resumen de movimientos en un periodo por tipo. """
+
+    query=db.query(
+        MovimientoAlmacen.tipo,
+        func.count(MovimientoAlmacen.id).label("total"),
+        func.sum(MovimientoAlmacen.cantidad).label("cantidad")
+    )
+
+    if fecha_inicio:
+        query = query.filter(MovimientoAlmacen.fecha_movimiento >= fecha_inicio)
+
+    if fecha_fin:
+        query = query.filter(MovimientoAlmacen.fecha_movimiento <= fecha_fin)
+
+    resultados=query.group_by(MovimientoAlmacen.tipo).all()
+
+    resumen={tipo: 0 for tipo in TIPOS_VALIDOS}
+    for tipo, _, cantidad in resultados:
+        resumen[tipo]=cantidad or 0
+
+    return resumen
 

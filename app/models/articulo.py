@@ -11,7 +11,7 @@ class Articulo(Base):
     codigo=Column(String(50),unique=True,nullable=False,index=True)
     nombre=Column(String(200),nullable=True)
     tipo=Column(String(50),nullable=False) # toner, refaccion, kit
-    id_categoria=Column(Integer,ForeignKey("modelos_impresoras.id"),nullable=True)
+    id_categoria=Column(Integer,ForeignKey("categorias_articulo.id"),nullable=True)
     modelo_compatible=Column(Integer,ForeignKey("modelos_impresoras.id"),nullable=True)
 
     #stock
@@ -27,9 +27,9 @@ class Articulo(Base):
     fecha_actualizacion=Column(TIMESTAMP,server_default=func.now(),onupdate=func.now())
 
     #Relaciones
-    categoria=relationship("CategoriaArticulo",back_populates="articulos")
-    modelo=relationship("MovimientoAlmacen",back_populates="articulo",order_by="MovimientoAlmacen.id.desc()")
-
+    categoria = relationship("CategoriaArticulo", back_populates="articulos")
+    modelo = relationship("ModeloImpresora")
+    movimientos = relationship("MovimientoAlmacen", back_populates="articulo", order_by="MovimientoAlmacen.id.desc()")
     
 
     

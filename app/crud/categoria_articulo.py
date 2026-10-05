@@ -12,7 +12,7 @@ def get_categoria_by_nombre(db:Session,nombre:str) -> Optional[CategoriaArticulo
 
     return db.query(CategoriaArticulo).filter(CategoriaArticulo.nombre==nombre).first()
 
-def get_categoria(
+def get_categorias(
         db:Session,
         skip:int=0,
         limit:int=100,
@@ -24,6 +24,18 @@ def get_categoria(
         query=query.filter(CategoriaArticulo.activo==activo)
 
     return query.offset(skip).limit(limit).all()
+
+
+def create_categoria(
+        db:Session,
+        categoria:CategoriaArticuloCreate
+) -> List[CategoriaArticulo]:
+
+    db_cat=CategoriaArticulo(**categoria.model_dump())
+    db.add(db_cat)
+    db.commit()
+    db.refresh(db_cat)
+    return db_cat
 
 
 def update_categoria(

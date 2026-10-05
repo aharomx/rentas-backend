@@ -67,7 +67,7 @@ def create_articulo(
 
     # Si hay stock inicial, crear moviemiento de entrada
     if stock_inicial > 0:
-        crud_mov.create_mov(
+        crud_mov.create_movimiento(
             db,
             MovimientoAlmacenCreate(
                 id_articulo=db_articulo.id,

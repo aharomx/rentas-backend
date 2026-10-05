@@ -18,6 +18,9 @@ def read_articulos(
     skip:int=0,
     limit:int=100,
     tipo:Optional[str]=None,
+    id_categoria:Optional[int]=None,
+    activo:Optional[bool]=None,
+    solo_stock_bajo:bool=False,
     db:Session=Depends(get_db),
     current_user=Depends(get_current_user)
 ):
@@ -25,7 +28,10 @@ def read_articulos(
         db,
         skip=skip,
         limit=limit,
-        tipo=tipo
+        tipo=tipo,
+        id_categoria=id_categoria,
+        activo=activo,
+        solo_stock_bajo=solo_stock_bajo
     )
 
 @router.get("/{articulo_id}", response_model=ArticuloResponse)
@@ -45,18 +51,14 @@ def read_articulos(
 
 @router.post("/", response_model=ArticuloResponse, status_code=status.HTTP_201_CREATED)
 def create_articulo(
-    articulo:ArticuloCreate,
-    db:Session=Depends(get_db),
-    current_user=Depends(require_roles(["superuser","admin","almacenista"])),
+    articulo: ArticuloCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_roles(["superuser", "admin", "almacenista"])),
 ):
-    existente=crud_articulo.get_articulo_by_codigo(db, articulo.codigo)
-
+    existente = crud_articulo.get_articulo_by_codigo(db, articulo.codigo)
     if existente:
-        raise HTTPException(
-            status_code=400,
-            detail="Ya existe un artículo con este código"
-        )
-    return crud_articulo.create_articulo(db, articulo)
+        raise HTTPException(status_code=400, detail="Ya existe un artículo con este código")
+    return crud_articulo.create_articulo(db, articulo, creado_por_id=current_user.id)
 
 
 @router.put("/{articulo_id}", response_model=ArticuloResponse)

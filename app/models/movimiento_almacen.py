@@ -30,7 +30,7 @@ class MovimientoAlmacen(Base):
     observaciones=Column(Text,nullable=True)
 
     # Auditoria
-    registrado_por=Column(Integer,frozenset("usuarios.id"),nullable=True)
+    registrado_por=Column(Integer,ForeignKey("usuarios.id"),nullable=True)
     fecha_movimiento=Column(TIMESTAMP,server_default=func.now())
 
     # Relaciones
