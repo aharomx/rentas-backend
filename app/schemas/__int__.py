@@ -31,3 +31,29 @@ from app.schemas.movimiento_almacen import (
     MovimientoAlmacenCreate, MovimientoAlmacenResponse,
     KardexItem, StockBajoItem, ResumenMovimientos
 )
+
+from app.schemas.solicitud_almacen import (
+    SolicitudAlmacenCreate, SolcitudAlmacenUpdate, SolicitudAlmacenResponse,
+    SolicitudAlmacenResumenResponse,
+    AutorizarSolicitudRequest,
+    EntregarSolicitudRequest,
+    CompletarRecoleccionRequest,
+    DevolucionPosteriorRequest,
+    CancelarSolicitudRequest,
+    ReporteDevolucionesItem, 
+    ResumenDevoluciones
+)
+
+from app.schemas.solicitud_almacen_detalle import (
+    SolicitudAlmacenDetalleCreate,
+    SolicitudAlmacenDetalleUpdate,
+    SolicitudAlmacenDetallResponse
+)
+
+from app.schemas.inventario_cliente import (
+    InventarioClienteCreate,
+    InventarioClienteUpdate,
+    InventarioClienteResponse,
+    ResumenInventarioCliente,
+    TonerEnCliente
+)

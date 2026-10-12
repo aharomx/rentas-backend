@@ -10,7 +10,8 @@ from app.models import (
     LecturaContador, OrdenLectura,
     Usuario, AuditoriaAcceso, Articulo, MantenimientoEquipo,
     MantenimientoRefaccion, Mantenimiento,CategoriaArticulo,
-    MovimientoAlmacen
+    MovimientoAlmacen, SolicitudAlmacen, SolicitudAlmacenDetalle,
+    InventarioCliente
 )
 
 # ⭐ CREAR TABLAS SI NO EXISTEN
@@ -23,7 +24,8 @@ from app.routers import (
     auth, usuarios,
     ordenes_lectura, lecturas,
     articulos, mantenimientos,
-    categorias_articulos, movimientos_almacen
+    categorias_articulos, movimientos_almacen,
+    solicitudes_almacen, inventario_cliente 
 )
 
 app = FastAPI(
@@ -56,6 +58,8 @@ app.include_router(articulos.router)
 app.include_router(categorias_articulos.router)
 app.include_router(mantenimientos.router)
 app.include_router(movimientos_almacen.router)
+app.include_router(solicitudes_almacen.router)
+app.include_router(inventario_cliente.router)
 
 @app.get("/")
 def root():

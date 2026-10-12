@@ -15,5 +15,9 @@ from app.models.matenimiento_equipo import MantenimientoEquipo
 from app.models.articulo import Articulo
 from app.models.categoria_articulo import CategoriaArticulo
 from app.models.movimiento_almacen import MovimientoAlmacen
+from app.models.solicitud_almacen import SolicitudAlmacen
+from app.models.solicitud_almacen_detalle import SolicitudAlmacenDetalle
+from app.models.inventario_cliente import InventarioCliente
+
 
 
