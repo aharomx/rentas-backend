@@ -13,7 +13,7 @@ class SolicitudAlmacen(Base):
     id=Column(Integer,primary_key=True,index=True)
     folio=Column(String(30),unique=True,nullable=False,index=True)
     tipo=Column(String(20),nullable=False) # entrega | recoleccion
-    estdo=Column(String(30),nullable=False, default="solicitud")
+    estado=Column(String(30),nullable=False, default="solicitud")
     # solicitud | autorizado | entregado | devolucion_parcial | 
     # devolucion_total | recolectado | cancelado
 

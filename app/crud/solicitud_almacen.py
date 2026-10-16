@@ -24,7 +24,7 @@ def _generar_folio(db:Session,tipo:str) -> str:
     """ Genera folio según tipo: SAL-2026-0001 o REC-2026-0001"""
     anio=datetime.now().year
     prefijo="SAL" if tipo=="entrega" else "REC"
-    prefijo_completo=f"{prefijo}-{anio}-"
+    prefijo_completo=f"{prefijo}-{anio}"
 
     ultimo=db.query(SolicitudAlmacen).filter(
         SolicitudAlmacen.folio.like(f"{prefijo_completo}%")
@@ -34,7 +34,7 @@ def _generar_folio(db:Session,tipo:str) -> str:
         ultimo_num=int(ultimo.folio.split("-")[-1])
         nuevo_num=ultimo_num+1
     else:
-        nuevo_num+1
+        nuevo_num=1
 
     folio=f"{prefijo_completo}-{nuevo_num:04d}"
 
@@ -54,7 +54,7 @@ def get_solicitud(db:Session,solicitud_id:int) -> Optional[SolicitudAlmacen]:
         joinedload(SolicitudAlmacen.cliente),
         joinedload(SolicitudAlmacen.contrato),
         joinedload(SolicitudAlmacen.autorizador),
-        joinedload(SolicitudAlmacen.prcesador),
+        joinedload(SolicitudAlmacen.procesador),
         joinedload(SolicitudAlmacen.registrador),
     ) .filter(SolicitudAlmacen.id==solicitud_id).first()
 
@@ -78,7 +78,7 @@ def get_solicitudes(
     if tipo:
         query=query.filter(SolicitudAlmacen.tipo==tipo)
     if estado:
-        query=query.filter(SolicitudAlmacen.estdo==estado)
+        query=query.filter(SolicitudAlmacen.estado==estado)
     if id_cliente:
         query=query.filter(SolicitudAlmacen.id_cliente==id_cliente)
     if mes:
@@ -86,7 +86,7 @@ def get_solicitudes(
     if anio:
         query=query.filter(extract('year',SolicitudAlmacen.fecha_solicitud)==anio)
 
-    return query.order_by(SolicitudAlmacen.fecha_solicitud.desc().offset(skip).limit(limit)).all()
+    return query.order_by(SolicitudAlmacen.fecha_solicitud.desc()).offset(skip).limit(limit).all()
 
 
 def get_pendientes(db:Session)  -> List[SolicitudAlmacen]:
@@ -96,7 +96,7 @@ def get_pendientes(db:Session)  -> List[SolicitudAlmacen]:
         joinedload(SolicitudAlmacen.detalle),
         joinedload(SolicitudAlmacen.cliente)
     ).filter(
-        SolicitudAlmacen.estdo.in_(["solicitud","autorizado"])
+        SolicitudAlmacen.estado.in_(["solicitud","autorizado"])
     ).order_by(SolicitudAlmacen.fecha_solicitud.asc()).all()
 
 
@@ -162,7 +162,7 @@ def create_solicitud(
                 existente=db.query(SolicitudAlmacenDetalle).join(SolicitudAlmacen).filter(
                     and_(
                         SolicitudAlmacenDetalle.numero_serie_toner==item.numero_serie_toner,
-                        SolicitudAlmacen.estdo.in_(["solicitud","autorizado"])
+                        SolicitudAlmacen.estado.in_(["solicitud","autorizado"])
                     )
                 ).first()
 
@@ -199,7 +199,7 @@ def create_solicitud(
                 id_solicitud=db_sol.id,
                 id_articulo=item.id_articulo,
                 cantidad=item.cantidad,
-                numer_serie_toner=item.numero_serie_toner,
+                numero_serie_toner=item.numero_serie_toner,
                 observaciones=item.observaciones,
                 estado="reservado"
             )
@@ -222,8 +222,8 @@ def update_solicitud(
     if not db_sol:
         return None
 
-    if db_sol.estdo in ["entregado","recolectado","cancelado"]:
-        raise ValueError(f"No se puede editar una solicitud en estado '{db_sol.estdo}' ")
+    if db_sol.estado in ["entregado","recolectado","cancelado"]:
+        raise ValueError(f"No se puede editar una solicitud en estado '{db_sol.estado}' ")
 
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(db_sol,key,value)
@@ -248,8 +248,8 @@ def autorizar_solicitud(
     if not db_sol.requiere_autorizacion:
         raise ValueError("Esta solicitud no requiere autorización")
 
-    if db_sol.estdo != "solicitud":
-        raise ValueError(f"No se puede autorizar. Estado actual: '{db_sol.estdo}")
+    if db_sol.estado != "solicitud":
+        raise ValueError(f"No se puede autorizar. Estado actual: '{db_sol.estado}")
 
     db_sol.estado = "autorizado"
     db_sol.autorizado_por=usuario_id
@@ -282,11 +282,11 @@ def entregar_solicitud(
     if db_sol.tipo != "entrega":
         raise ValueError("Solo las solicitudes tipo 'entrega' se pueden entregar")
 
-    if db_sol.requiere_autorizacion and db_sol.estdo != "autorizado":
+    if db_sol.requiere_autorizacion and db_sol.estado != "autorizado":
         raise ValueError ("La solicitud requiere autorización antes de entregar")
 
-    if db_sol.estdo not in ["solicitud","autorizado"]:
-        raise ValueError(f"No se puede entregar. Estado actual: '{db_sol.estdo}")
+    if db_sol.estado not in ["solicitud","autorizado"]:
+        raise ValueError(f"No se puede entregar. Estado actual: '{db_sol.estado}")
 
     # Actualizar chofer si viene
     if data.chofer:
@@ -326,20 +326,21 @@ def entregar_solicitud(
                 id_cliente=db_sol.id_cliente,
                 id_articulo=det.id_articulo,
                 numero_serie_toner=det.numero_serie_toner,
-                id_solicitud=db_sol.id,
+                id_solicitud_entrega=db_sol.id,
                 cantidad=det.cantidad,
                 estado="en_cliente",
             )
             db.add(inv_cliente)
+
 
             det.estado="entregado"
             det.fecha_estado=datetime.now()
 
         # Determinar estado final
         if detalle_devueltas and len(detalle_devueltas)==len(db_sol.detalle):
-            db_sol.estdo="devolucion_total"
+            db_sol.estado="devolucion_total"
         elif detalle_devueltas:
-            db_sol.estdo="devolucion_parcial"
+            db_sol.estado="devolucion_parcial"
         else:
             db_sol.estado="entregado"
 
@@ -379,8 +380,8 @@ def completar_recoleccion(
     if db_sol.tipo != "recoleccion":
         raise ValueError("Solo las solicitudes tipo 'recoleccion' se pueden completar")
 
-    if db_sol.estdo != "solicitud":
-        raise ValueError(f"No se puede completar. Estado actual: '{db_sol.estdo}'")
+    if db_sol.estado != "solicitud":
+        raise ValueError(f"No se puede completar. Estado actual: '{db_sol.estado}'")
 
 
     # ID's de los detalles que efectivamente se recogieron
@@ -416,7 +417,7 @@ def completar_recoleccion(
         det.estado="desecho"
         det.fecha_estado=datetime.now()
 
-    db_sol.estdo="recolectado"
+    db_sol.estado="recolectado"
     db_sol.fecha_recoleccion=datetime.now()
     db_sol.procesado_por=usuario_id
 
@@ -449,9 +450,9 @@ def registrar_devolucion_posterior(
     if db_sol.tipo != "entrega":
         raise ValueError(" Solo aplica a solicitudes de entrega ")
 
-    if db_sol.estdo not in ["entregado", "devolucion_parcial"]:
+    if db_sol.estado not in ["entregado", "devolucion_parcial"]:
         raise ValueError(
-            f"No se puede devolver. El estado actual: '{db_sol.estdo}'."
+            f"No se puede devolver. El estado actual: '{db_sol.estado}'."
             f"Solo se devuelven entregas ya realizadas"
         )
 
@@ -518,9 +519,9 @@ def registrar_devolucion_posterior(
     total_devueltos=len([d for d in db_sol if d.estado == "devuelto"])
 
     if total_devueltos >= total_entregados:
-        db_sol.estdo="devolucion_total"
+        db_sol.estado="devolucion_total"
     else:
-        db_sol.estdo="devolucion_parcial"
+        db_sol.estado="devolucion_parcial"
 
     db_sol.procesado_por=usuario_id
 
@@ -547,7 +548,7 @@ def cancelar_solicitud(
     if not db_sol:
         raise ValueError("Solicitud no encontrada")
 
-    if db_sol.estdo in ["entregado","recolectado","devolucion_total","cancelado"]:
+    if db_sol.estado in ["entregado","recolectado","devolucion_total","cancelado"]:
         raise ValueError(
             f"No se puede cancelar. Estado actual: '{db_sol.estado}'."
             f"Si ya se entregó, se debe hacer una devolución"
@@ -604,7 +605,7 @@ def agregar_detalle(
         raise ValueError("Solicitud no encontrada")
 
     if db_sol.estado not in ["solicitud","autorizado"]:
-        raise ValueError(f"No se puede modificar una solicitud en estado '{db_sol.estdo}' ")
+        raise ValueError(f"No se puede modificar una solicitud en estado '{db_sol.estado}' ")
 
     articulo=db.query(Articulo).filter(Articulo.id==item_data.id_articulo).first()
     if not articulo:
@@ -676,7 +677,7 @@ def get_devoluciones(
         joinedload(SolicitudAlmacen.detalle),
         joinedload(SolicitudAlmacen.cliente),
     ).filter(
-        SolicitudAlmacen.estdo.in_(
+        SolicitudAlmacen.estado.in_(
             ["devolucion_parcial","devolucion_total"]
         )
     )

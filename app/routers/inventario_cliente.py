@@ -29,7 +29,17 @@ def read_inventario_clietne(
     )
 
 
-@router.get("/cliente/{cliente_id}/resumen", response_model=List[InventarioClienteResponse])
+@router.get("/cliente/{cliente_id}/resumen", response_model=ResumenInventarioCliente)
+def read_resumen_cliente(
+    cliente_id:int,
+    db:Session=Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """ Resumen del inventario del cliente agrupado por artículo """
+
+    return crud_inv.get_resumen_por_cliente(db,cliente_id)
+
+@router.get("/solicitud/{solicitud_id}", response_model=List[InventarioClienteResponse])
 def read_inventario_por_solicitud(
     solicitud_id:int,
     db:Session=Depends(get_db),

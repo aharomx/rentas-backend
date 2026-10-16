@@ -64,36 +64,35 @@ def get_toner_by_serial(
     ).order_by(InventarioCliente.fecha_entrega.desc()).first()
 
 
-def get_resumen_por_cliente(db:Session, id_cliente:int) -> dict:
-    """ Resumen del inventario del cliente agrupado por artículo """
-
-    items=db.query(
-        InventarioCliente.articulo,
-        func.count(InventarioCliente.id).label("total")
+def get_resumen_por_cliente(db: Session, id_cliente: int) -> dict:
+    """Resumen del inventario del cliente agrupado por artículo."""
+    
+    items = db.query(
+        InventarioCliente.id_articulo,
+        func.count(InventarioCliente.id).label("total"),
     ).filter(
-        InventarioCliente.id_cliente==id_cliente,
-        InventarioCliente.estado=="en_cliente",
-    ).group_by(InventarioCliente.id).all()
-
-    resultado=[]
-    total_articulos=0
-
-    for id_articulo,total in items:
-        articulo=db.query(Articulo).filter(Articulo.id==id_articulo).first()
-
+        InventarioCliente.id_cliente == id_cliente,
+        InventarioCliente.estado == "en_cliente",
+    ).group_by(InventarioCliente.id_articulo).all()
+    
+    resultado = []
+    total_articulos = 0
+    
+    for id_articulo, total in items:
+        articulo = db.query(Articulo).filter(Articulo.id == id_articulo).first()
         resultado.append({
-            "id_articulo":id_articulo,
-            "articulo_codigo":articulo.codigo if articulo else None,
-            "articulo_nombre":articulo.nombre if articulo else None,
-            "articulo_tipo":articulo.tipo if articulo else None,
-            "cantidad":total,
+            "id_articulo": id_articulo,
+            "articulo_codigo": articulo.codigo if articulo else None,
+            "articulo_nombre": articulo.nombre if articulo else None,
+            "articulo_tipo": articulo.tipo if articulo else None,
+            "cantidad": total,
         })
-        total_articulos += total 
-
+        total_articulos += total
+    
     return {
-        "id_cliente":id_cliente,
-        "total_articulos":total_articulos,
-        "items":resultado
+        "id_cliente": id_cliente,
+        "total_articulos": total_articulos,
+        "items": resultado,
     }
 
 # ============= CREAR (uso interno desde solicitudes) ===============

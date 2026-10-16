@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.config.program_settings import settings
 from app.database import get_db
 
 # Contexto de hashing

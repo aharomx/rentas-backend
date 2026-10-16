@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from app.database import get_db
-from app.config import settings
+from app.config.program_settings import settings
 from app.schemas.usuario import(
     TokenResponse, 
     RefreshTokenRequest,

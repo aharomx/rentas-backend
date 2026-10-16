@@ -90,7 +90,59 @@ def read_solicitud(
     return db_sol
 
 
+@router.get("/{solicitud_id}/pdf")
+def descargar_pdf_solicitud(
+    solicitud_id:int,
+    db:Session=Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """ Descarga el PDF de la solicitud """
+
+    from app.utils.pdf_solicitud import generar_pdf_solicitud
+    from fastapi.responses import FileResponse
+
+    db_sol=crud_sol.get_solicitud(db,solicitud_id)
+    if not db_sol:
+        raise HTTPException(
+            status_code=404,
+            detail="Solicitud no encontrada"
+        )
+
+    try:
+        ruta_pdf=generar_pdf_solicitud(db, solicitud_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+    return FileResponse(
+        ruta_pdf,
+        media_type="application/pdf",
+        filename=f"{db_sol.folio}.pdf"
+    )
+
+
+
+
+
+
 # =============== CREAR / ACTUALIZAR / ELIMINAR ============
+@router.post("/", response_model=SolicitudAlmacenResponse, status_code=status.HTTP_201_CREATED)
+def create_solicitud(
+    data:SolicitudAlmacenCreate,
+    db:Session=Depends(get_db),
+    current_user=Depends(require_roles(["superuser","admin","coordinador","almacenista"])),
+):
+    """ Crea una solicitud de almacén (entrega o recolección)"""
+
+    try:
+        return crud_sol.create_solicitud(db,data,registrado_por_id=current_user.id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
 
 @router.post("/{solicitud_id}", response_model=SolicitudAlmacenResponse)
 def update_solicitud(

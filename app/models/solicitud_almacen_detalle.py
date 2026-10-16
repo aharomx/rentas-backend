@@ -16,7 +16,8 @@ class SolicitudAlmacenDetalle(Base):
         nullable=False,
     )
     id_articulo=Column(Integer,ForeignKey("articulos.id"),nullable=False)
-    cantidad=Column(Integer,ForeignKey("articulos.id"),nullable=False)
+    cantidad=Column(Integer,nullable=False)
+    numero_serie_toner=Column(String(50),nullable=True, index=True)
     estado=Column(String(20),nullable=False,default="reservado")
     # reservado | entregado | devuelto | desecho
     observaciones=Column(Text,nullable=True)
