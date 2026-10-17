@@ -17,9 +17,15 @@ class SolicitudAlmacen(Base):
     # solicitud | autorizado | entregado | devolucion_parcial | 
     # devolucion_total | recolectado | cancelado
 
+    # Para solicitudes internas
+    id_tecnico=Column(Integer, ForeignKey("usuarios.id"),nullable=True)
+    id_mantenimiento=Column(Integer, ForeignKey("mantenimientos.id"),nullable=True)
+
     # Relaciones
     id_cliente=Column(Integer,ForeignKey("clientes.id"),nullable=False)
     id_contrato=Column(Integer,ForeignKey("contratos.id"),nullable=True)
+    tecnico=relationship("Usuario",foreign_keys=[id_tecnico])
+    mantenimiento=relationship("Mantenimiento",foreign_keys=[id_mantenimiento])
 
     # Autorización
     requiere_autorizacion=Column(Boolean,default=False)
@@ -76,5 +82,14 @@ class SolicitudAlmacen(Base):
     @property
     def total_articulos(self) -> str | None:
         return len(self.detalle) if self.detalle else 0
+
+    @property
+    def tecnico_nombre(self) -> str | None:
+        return self.tecnico.nombre_completo if self.tecnico else None
+
+    @property
+    def mantenimiento_folio(self) -> str | None:
+        return self.mantenimiento.folio if self.mantenimiento else None
+    
 
     

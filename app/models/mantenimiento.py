@@ -12,6 +12,7 @@ class Mantenimiento(Base):
     id=Column(Integer,primary_key=True,index=True)
     folio=Column(String(30),unique=True,nullable=False,index=True)
     id_contrato=Column(Integer,ForeignKey("contratos.id"),nullable=False)
+    id_solicitud_interna=Column(Integer,ForeignKey("solicitudes_almacen.id"),nullable=True)
 
     # Tipo y estado
     tipo=Column(String(20),nullable=False) # preventivo | correctivo
@@ -48,6 +49,7 @@ class Mantenimiento(Base):
     tecnico_asignado_user = relationship("Usuario", foreign_keys=[tecnico_asignado])
     tecnico_inicio_user = relationship("Usuario", foreign_keys=[tecnico_inicio])
     tecnico_fin_user = relationship("Usuario", foreign_keys=[tecnico_fin])
+    solicitud_interna= relationship("SolicitudAlmacen",foreign_keys=[id_solicitud_interna])
     
     equipos = relationship(
         "MantenimientoEquipo",

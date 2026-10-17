@@ -10,14 +10,24 @@ from app.schemas.solicitud_almacen_detalle import (
 
 # ========== CREAR ==============
 class SolcitudAlmacenBase(BaseModel):
-    id_cliente:int
+    id_cliente: Optional[int]=None
     id_contrato:Optional[int]=None
-    tipo:str  # entrega | recoleccion
+    tipo:str  # entrega | recoleccion | interna
     chofer:Optional[str]=None
     observaciones:Optional[str]=None
 
 
 class SolicitudAlmacenCreate(SolcitudAlmacenBase):
+    detalle:List[SolicitudAlmacenDetalleCreate]
+
+
+# ============  CREAR INTERNA ===============
+class SolcitudInternaCreate(BaseModel):
+    """ Solicitud interna para surtir refacciones a un técnico """
+
+    id_tecnico:int
+    id_mantenimiento:Optional[int]=None
+    observaciones:Optional[str]=None
     detalle:List[SolicitudAlmacenDetalleCreate]
 
 
@@ -56,6 +66,19 @@ class CancelarSolicitudRequest(BaseModel):
     motivo_cancelacion:str
 
 
+class SurtirSolicitudRequest(BaseModel):
+    observaciones:Optional[str]=None
+
+class UsarSolicitudRequest(BaseModel):
+    observaciones:Optional[str]=None
+
+class DevolverSobranteRequest(BaseModel):
+    ids_detalle_devueltos: List[int]
+    motivo_devolucion:str
+    observaciones:Optional[str]=None
+
+
+
 # ============= RESPUESTA =======================
 class SolicitudAlmacenResponse(SolcitudAlmacenBase):
     id:int
@@ -83,6 +106,8 @@ class SolicitudAlmacenResponse(SolcitudAlmacenBase):
     # Datos enriquecidos
     cliente_nombre:Optional[str]=None
     contrato_numero:Optional[int]=None
+    tecnico_nombre:Optional[str]=None
+    mantenimiento_folio:Optional[str]=None
     autorizador_nombre:Optional[str]=None
     procesador_nombre:Optional[str]=None
     registrador_nombre:Optional[str]=None
@@ -101,12 +126,16 @@ class SolicitudAlmacenResumenResponse(BaseModel):
     folio:str 
     tipo:str 
     estado:str 
-    id_cliente:int 
+    id_cliente:Optional[int] = None
     cliente_nombre:Optional[str]=None
+    id_tecnico:Optional[int]=None
+    tecnico_nombre:Optional[str]=None
     contrato_numero:Optional[int]=None
+    mantenimiento_folio:Optional[str]=None
     fecha_solicitud:datetime
     fecha_entrega:Optional[datetime]=None
     fecha_recoleccion:Optional[datetime]=None
+    fecha_surtido:Optional[datetime]=None
     total_articulos:Optional[int]=None
     chofer:Optional[str]=None
 

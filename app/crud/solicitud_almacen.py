@@ -694,8 +694,288 @@ def get_devoluciones(
     return query.order_by(SolicitudAlmacen.fecha_solicitud.desc()).all()
 
 
+
+# ======================= GENERACION DE FOLIO INTERNA =============================
+
+def _generar_folio_interna(db:Session) -> str:
+    """ Genera un folio para solicitudes internas: INT-2026-0001"""
+
+    anio=datetime.now().year
+    prefijo= f"INT-{anio}-"
+
+    ultimo=db.query(SolicitudAlmacen).filter(
+        SolicitudAlmacen.folio.like(f"{prefijo}%")
+    ).order_by(SolicitudAlmacen.folio.desc()).first()
+
+    if ultimo:
+        ultimo_num=int(ultimo.folio.split("-")[-1])
+        nuevo_num=ultimo_num+1
+    else:
+        nuevo_num=1
+
+    folio=f"{prefijo}{nuevo_num:04d}"
+
+    while db.query(SolicitudAlmacen).filter(SolicitudAlmacen.folio==folio).first():
+        nuevo_num += 1
+        folio=f"{prefijo}{nuevo_num:04d}"
+
+    return folio
+
+
+# ============== CREAR INTERNA =====================
+
+def crear_solicitud_interna(
+        db:Session,
+        data,
+        registrado_por_id:int
+):
+    """ Crea una solicitud interna para surtir refacciones a un técnico """
+
+    from app.models.usuario import Usuario
+    from app.models.mantenimiento import Mantenimiento
+
+    # Validar técnico
+    tecnico=db.query(Usuario).filter(Usuario.id==data.id_tecnico).first()
+
+    if not tecnico:
+        raise ValueError("Técnico no encontrado")
+    if not tecnico.activo:
+        raise ValueError("El técnico está inactivo")
+
+    # Validar mantenimiento si viene
+    if data.id_mantenimiento:
+        mant=db.query(Mantenimiento).filter(Mantenimiento.id==data.id_mantenimiento).first()
+        if not mant:
+            raise ValueError("Mantenimiento no encontrado")
+
+    # Validar detalle
+    if not data.detalle:
+        raise ValueError("La solicitud debe tener al menos un artículo")
+
+    # Validar articulos
+    for item in data.detalle:
+        articulo=db.query(Articulo).filter(Articulo.id==item.id_articulo).first()
+        if not articulo:
+            raise ValueError(f"Articulo ID: {item.id_articulo} no encontrado")
+
+        if not articulo.activo:
+            raise ValueError(f"El artículo '{articulo.codigo}' está inactivo")
+
+    # Generar folio
+    folio=_generar_folio_interna(db)
+
+    # Crear solicitud
+    db_sol=SolicitudAlmacen(
+        folio=folio,
+        tipo="interna",
+        estado="solicitud",
+        id_tecnico=data.id_tecnico,
+        id_mantenimiento=data.id_mantenimiento,
+        observaciones=data.observaciones,
+        registrado_por=registrado_por_id,
+        requiere_autorizacion=False,
+    )
+    db.add(db_sol)
+    db.flush()
+
+    # Crear detalle
+    for item in data.detalle:
+        db_det=SolicitudAlmacenDetalle(
+            id_solicitud=db_sol.id,
+            id_articulo=item.id_articulo,
+            cantidad=item.cantidad,
+            numero_serie_toner=item.numero_serie_toner,
+            observaciones=item.observaciones,
+            estado="reservado",
+        )
+        db.add(db_det)
+
+    db.commit()
+    db.refresh(db_sol)
+    return db_sol
+
+
+# =============== SURTIR INTERNA ===================
+
+def surtir_solicitud_interna(
+        db:Session,
+        solicitud_id:int,
+        data,
+        usuario_id:int
+):
+    """ Surte una solicitud interna: descuenta de almacén y entrega al técnico """
+
+    db_sol=get_solicitud(db, solicitud_id)
+    if not db_sol:
+        raise ValueError("Solicitud no encontrada")
+
+    if db_sol.tipo != "interna":
+        raise ValueError("Solo aplica a solicitudes internas")
+
+    if db_sol.estado != "solicitud":
+        raise ValueError(f"No se puede surtir. Estado actual: '{db_sol.estado}'")
+
+    # Verificar stock de todos los artículos ANTES de hacer cambios
+    for det in db_sol.detalle:
+        articulo=db.query(Articulo).filter(Articulo.id==det.id_articulo).first()
+        if not articulo:
+            raise ValueError(f"Articulo: {det.id_articulo} no encontrado")
+
+        if articulo.stock_actual < det.cantidad:
+            raise ValueError(
+                f"Stock insuficiente de '{articulo.codigo}'. "
+                f"Stock: {articulo.stock_actual}, requerido: {det.cantidad}."
+                f"Debe registrar una entrada al almacén primero."
+            )
+
+    # Surtir cada artículo
+    for det in db_sol.detalle:
+        try:
+            crud_mov.create_movimiento(
+                db,
+                MovimientoAlmacenCreate(
+                    id_articulo=det.id_articulo,
+                    tipo="salida",
+                    contdad=data.cantidad,
+                    numero_serie_toner=det.numero_serie_toner,
+                    motivo=f"Surtido a técnico: {db_sol.tecnico_nombre}",
+                    referencia=db_sol.folio,
+                    id_solicitud_almacen=db_sol.id
+                ),
+                registrado_por_id=usuario_id,
+            )
+        except ValueError as e:
+            raise ValueError("Error en artículo {det.articulo_codigo}: {str(e)}")
+
+        det.estado="surtido"
+        det.fecha_estado=datetime.now()
+
+    db_sol.estado="surtido"
+    db_sol.fecha_surtido=datetime.now()
+    db_sol.procesado_por=usuario_id
+
+    if data.observaciones:
+        db_sol.observaciones=(
+            (db_sol.observaciones or "") +  f"\n[Surtido] {data.observaciones}"
+        ).strip()
+
+    db.commit()
+    db.refresh(db_sol)
+    return db_sol
+
+# ==================== USAR (al completar un mantenimiento) ==============
+
+def marcar_solicitud_como_usada(
+        db:Session,
+        solicitud_id:int,
+        data,
+        usuario_id:int
+):
+    """ Marca las refacciones como usadas (al completar mantenimiento)"""
+
+    db_sol=get_solicitud(db,solicitud_id)
+    if not db_sol:
+        raise ValueError("Solicitud no encontrada")
+
+    if db_sol.tipo != "interna":
+        raise ValueError("Solo aplica para solicitudes internas")
+
+    if db_sol.estado != "surtido":
+        raise ValueError(f"No se puede maracar como usada. Estado actual: '{db_sol.estado}'")
+
+    # Marcar detalles como usados
+    for det in db_sol.detalle:
+        if det.estado=="surtido":
+            det.estado="usado"
+            det.fecha_estado=datetime.now()
+
+    db_sol.estado="usado"
+    db_sol.procesado_por=usuario_id
+
+    if data.observaciones:
+        db_sol.observaciones=(
+            (db_sol.observaciones or "-")+ f"\n[Usado] {data.observaciones}"
+        ).strip()
+
     
-        
+    db.commit()
+    db.refresh(db_sol)
+    return db_sol
+
+# ================== DEVOLVER SOBRANTE =================
+
+def devolver_sobrante_interna(
+        db:Session,
+        solicitud_id:int,
+        data,
+        usuario_id:int
+):
+    """ Devuelve al almacén los sobrantes de una solicitud interna """
+
+    db_sol=get_solicitud(db,solicitud_id)
+    if not db_sol:
+        raise ValueError("Solicitud no encontrada")
+
+    if db_sol.tipo != "interna":
+        raise ValueError("Solo aplica a solicitudes internas")
+
+    if db_sol.estado not in ["surtido","usado"]:
+        raise ValueError(f"No se puede devolver. Estado actual: '{db_sol.estado}'")
+
+    ids_devueltos=set(data.ids_detalle_devueltos)
+    detalles_devueltos=[]
+
+    for det in db_sol.detalle:
+        if det.id not in ids_devueltos:
+            continue
+        if det.estado != "surtido":
+            continue # Solo los surtidos no usados
+
+        # Registrar entrada a almacén
+        try:
+            crud_mov.create_movimiento(
+                db,
+                MovimientoAlmacenCreate(
+                    id_articulo=det.id_articulo,
+                    tipo="devolucion",
+                    cantidad=det.cantidad,
+                    numero_serie_toner=det.numero_serie_toner,
+                    motivo=f"Devolución de sobrante: {data.motivo_devolucion}",
+                    referencia=db_sol.folio,
+                    id_solicitud_almacen=db_sol.id,
+                ),
+                registrado_por_id=usuario_id,
+            )
+        except ValueError as e:
+            raise ValueError(f"Error al devolver: str(e)")
+
+        det.estado="devuelto"
+        det.fecha_estado=datetime.now()
+        detalles_devueltos.append(det)
+
+    if not detalles_devueltos:
+        raise ValueError("No se especificaron artículos válidos para devolver")
+
+    # Actualizar estado
+    total_surtidos=len([d for d in db_sol.detalle if d.estado in ["surtido","usado","devuleto"]])
+    total_usados=len([d for d in db_sol.detalle if d.estado=="usado"])
+    total_devueltos=len([d for d in db_sol.detalle if d.estado=="devuelto"])
+
+    if total_usados+total_devueltos >= total_surtidos:
+        db_sol.estado="completado"
+    else:
+        db_sol.estado="devuelto_parcial"
+
+    db_sol.procesado_por=usuario_id
+
+    if data.observaciones:
+        db_sol.observaciones = (
+            (db_sol.observaciones or "") + f"\n[Devolución sobrante] {data.observaciones}"
+        ).strip()
+    
+    db.commit()
+    db.refresh(db_sol)
+    return db_sol
 
 
 
