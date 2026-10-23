@@ -22,7 +22,7 @@ class SolicitudAlmacenCreate(SolcitudAlmacenBase):
 
 
 # ============  CREAR INTERNA ===============
-class SolcitudInternaCreate(BaseModel):
+class SolicitudInternaCreate(BaseModel):
     """ Solicitud interna para surtir refacciones a un técnico """
 
     id_tecnico:int
@@ -52,7 +52,7 @@ class EntregarSolicitudRequest(BaseModel):
 
 class CompletarRecoleccionRequest(BaseModel):
     """ Datos para completar la recolección de vacíoc """
-    observaciones:Optional[BaseModel]=None
+    observaciones:Optional[str]=None
     # Id´s de los detalles que efectivamente se recolectaron
     ids_detalle_recogidos:Optional[List[int]]=None
 
@@ -90,6 +90,7 @@ class SolicitudAlmacenResponse(SolcitudAlmacenBase):
     fecha_solicitud:datetime
     fecha_entrega:Optional[datetime]=None
     fecha_recoleccion:Optional[datetime]=None
+    fecha_surtido:Optional[datetime]=None
     fecha_creacion:datetime
 
     # Autorización
@@ -102,6 +103,10 @@ class SolicitudAlmacenResponse(SolcitudAlmacenBase):
 
     # Motivos
     motivo_cancelacion:Optional[str]=None
+
+    # Técnico y mantenimiento
+    id_tecnico:Optional[int]=None
+    id_mantenimiento:Optional[int]=None
 
     # Datos enriquecidos
     cliente_nombre:Optional[str]=None

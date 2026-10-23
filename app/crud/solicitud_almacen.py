@@ -45,7 +45,34 @@ def _generar_folio(db:Session,tipo:str) -> str:
 
     return folio
 
-  # ================ LECTURA ============================
+# ======================= GENERACION DE FOLIO INTERNA =============================
+
+def _generar_folio_interna(db:Session) -> str:
+    """ Genera un folio para solicitudes internas: INT-2026-0001"""
+
+    anio=datetime.now().year
+    prefijo= f"INT-{anio}-"
+
+    ultimo=db.query(SolicitudAlmacen).filter(
+        SolicitudAlmacen.folio.like(f"{prefijo}%")
+    ).order_by(SolicitudAlmacen.folio.desc()).first()
+
+    if ultimo:
+        ultimo_num=int(ultimo.folio.split("-")[-1])
+        nuevo_num=ultimo_num+1
+    else:
+        nuevo_num=1
+
+    folio=f"{prefijo}{nuevo_num:04d}"
+
+    while db.query(SolicitudAlmacen).filter(SolicitudAlmacen.folio==folio).first():
+        nuevo_num += 1
+        folio=f"{prefijo}{nuevo_num:04d}"
+
+    return folio
+
+
+ # ================ LECTURA ============================
 
 def get_solicitud(db:Session,solicitud_id:int) -> Optional[SolicitudAlmacen]:
 
@@ -98,6 +125,9 @@ def get_pendientes(db:Session)  -> List[SolicitudAlmacen]:
     ).filter(
         SolicitudAlmacen.estado.in_(["solicitud","autorizado"])
     ).order_by(SolicitudAlmacen.fecha_solicitud.asc()).all()
+
+
+
 
 
 # ================= CREAR ========================
@@ -695,33 +725,6 @@ def get_devoluciones(
 
 
 
-# ======================= GENERACION DE FOLIO INTERNA =============================
-
-def _generar_folio_interna(db:Session) -> str:
-    """ Genera un folio para solicitudes internas: INT-2026-0001"""
-
-    anio=datetime.now().year
-    prefijo= f"INT-{anio}-"
-
-    ultimo=db.query(SolicitudAlmacen).filter(
-        SolicitudAlmacen.folio.like(f"{prefijo}%")
-    ).order_by(SolicitudAlmacen.folio.desc()).first()
-
-    if ultimo:
-        ultimo_num=int(ultimo.folio.split("-")[-1])
-        nuevo_num=ultimo_num+1
-    else:
-        nuevo_num=1
-
-    folio=f"{prefijo}{nuevo_num:04d}"
-
-    while db.query(SolicitudAlmacen).filter(SolicitudAlmacen.folio==folio).first():
-        nuevo_num += 1
-        folio=f"{prefijo}{nuevo_num:04d}"
-
-    return folio
-
-
 # ============== CREAR INTERNA =====================
 
 def crear_solicitud_interna(
@@ -734,6 +737,7 @@ def crear_solicitud_interna(
     from app.models.usuario import Usuario
     from app.models.mantenimiento import Mantenimiento
 
+
     # Validar técnico
     tecnico=db.query(Usuario).filter(Usuario.id==data.id_tecnico).first()
 
@@ -742,11 +746,13 @@ def crear_solicitud_interna(
     if not tecnico.activo:
         raise ValueError("El técnico está inactivo")
 
+
     # Validar mantenimiento si viene
     if data.id_mantenimiento:
         mant=db.query(Mantenimiento).filter(Mantenimiento.id==data.id_mantenimiento).first()
         if not mant:
             raise ValueError("Mantenimiento no encontrado")
+
 
     # Validar detalle
     if not data.detalle:
@@ -760,10 +766,12 @@ def crear_solicitud_interna(
 
         if not articulo.activo:
             raise ValueError(f"El artículo '{articulo.codigo}' está inactivo")
+    
 
     # Generar folio
     folio=_generar_folio_interna(db)
 
+ 
     # Crear solicitud
     db_sol=SolicitudAlmacen(
         folio=folio,
@@ -778,6 +786,7 @@ def crear_solicitud_interna(
     db.add(db_sol)
     db.flush()
 
+
     # Crear detalle
     for item in data.detalle:
         db_det=SolicitudAlmacenDetalle(
@@ -789,6 +798,9 @@ def crear_solicitud_interna(
             estado="reservado",
         )
         db.add(db_det)
+
+   
+    
 
     db.commit()
     db.refresh(db_sol)
@@ -806,6 +818,9 @@ def surtir_solicitud_interna(
     """ Surte una solicitud interna: descuenta de almacén y entrega al técnico """
 
     db_sol=get_solicitud(db, solicitud_id)
+
+    
+
     if not db_sol:
         raise ValueError("Solicitud no encontrada")
 
@@ -836,7 +851,7 @@ def surtir_solicitud_interna(
                 MovimientoAlmacenCreate(
                     id_articulo=det.id_articulo,
                     tipo="salida",
-                    contdad=data.cantidad,
+                    cantidad=det.cantidad,
                     numero_serie_toner=det.numero_serie_toner,
                     motivo=f"Surtido a técnico: {db_sol.tecnico_nombre}",
                     referencia=db_sol.folio,

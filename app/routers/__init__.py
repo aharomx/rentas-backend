@@ -15,5 +15,6 @@ from app.routers import categorias_articulos
 from app.routers import movimientos_almacen
 from app.routers import solicitudes_almacen
 from app.routers import inventario_cliente
+from app.routers import reportes_almacen
 
 

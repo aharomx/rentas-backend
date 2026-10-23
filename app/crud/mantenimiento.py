@@ -357,6 +357,22 @@ def completar_mantenimiento(
         ).strip()
 
 
+    if db_mant.id_silicitud_interna:
+        from app.crud import solicitud_almacen as crud_sol
+        from app.schemas.solicitud_almacen import UsarSolicitudRequest
+
+        try:
+            crud_sol.marcar_solicitud_como_usada(
+                db,
+                db_mant.id_solicitud_interna,
+                UsarSolicitudRequest(observaciones=f"Mantenimiento {db_mant.folio} completado"),
+                usuario_id,
+            )
+        except ValueError as e:
+            # Si falla, no bloqueamos el completar (por si ya se marco)
+            pass
+    
+
     # Actualizar fechas de próximo mantenimiento en equipos
     for me in db_mant.equipos:
         equipo=db.query(Equipo).filter(Equipo.id==me.id_equipo).first()

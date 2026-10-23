@@ -41,7 +41,11 @@ from app.schemas.solicitud_almacen import (
     DevolucionPosteriorRequest,
     CancelarSolicitudRequest,
     ReporteDevolucionesItem, 
-    ResumenDevoluciones
+    ResumenDevoluciones,
+    SolicitudInternaCreate,
+    SurtirSolicitudRequest,
+    UsarSolicitudRequest,
+    DevolverSobranteRequest
 )
 
 from app.schemas.solicitud_almacen_detalle import (

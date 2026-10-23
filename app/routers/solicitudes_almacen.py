@@ -10,7 +10,9 @@ from app.schemas.solicitud_almacen import (
     AutorizarSolicitudRequest, EntregarSolicitudRequest,
     CompletarRecoleccionRequest, DevolucionPosteriorRequest,
     CancelarSolicitudRequest,
-    ReporteDevolucionesItem
+    ReporteDevolucionesItem,
+    SolicitudInternaCreate,SurtirSolicitudRequest,
+    UsarSolicitudRequest, DevolverSobranteRequest
 )
 
 from app.schemas.solicitud_almacen_detalle import (
@@ -123,10 +125,6 @@ def descargar_pdf_solicitud(
     )
 
 
-
-
-
-
 # =============== CREAR / ACTUALIZAR / ELIMINAR ============
 @router.post("/", response_model=SolicitudAlmacenResponse, status_code=status.HTTP_201_CREATED)
 def create_solicitud(
@@ -138,6 +136,28 @@ def create_solicitud(
 
     try:
         return crud_sol.create_solicitud(db,data,registrado_por_id=current_user.id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+
+# ================= SOLICITUDES INTERNAS ================
+
+@router.post("/internas", response_model=SolicitudAlmacenResponse, status_code=status.HTTP_201_CREATED)
+def crear_solicitud_interna(
+    data:SolicitudInternaCreate,
+    db:Session=Depends(get_db),
+    current_user=Depends(require_roles(["superuser","admin","coordinador","tecnico","almacenista"])),
+):
+    """ Crea una solicitud internar para surtir refacciones a un técnico """
+    try:
+        return crud_sol.crear_solicitud_interna(
+            db,
+            data,
+            registrado_por_id=current_user.id
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=400,
@@ -187,6 +207,75 @@ def delete_solicitud(
             status_code=400, 
             detail=str(e)
         )
+
+
+
+
+@router.post("/{solicitud_id}/surtir", response_model=SolicitudAlmacenResponse)
+def surtir_solicitud(
+    solicitud_id:int,
+    data:SurtirSolicitudRequest,
+    db:Session=Depends(get_db),
+    current_user=Depends(require_roles(["superuser","admin","almacenista"])),
+):
+    """ Surte una solicitud interna (descuenta del almacén )"""
+    try:
+        return crud_sol.surtir_solicitud_interna(
+            db,
+            solicitud_id,
+            data,
+            usuario_id=current_user.id,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+@router.post("/{solicitud_id}/usar", response_model=SolicitudAlmacenResponse)
+def usar_solicitud(
+    solicitud_id:int,
+    data:UsarSolicitudRequest,
+    db:Session=Depends(get_db),
+    current_user=Depends(require_roles(["superuser","admin","coordinador","tecnico"])),
+):
+    """ Marca la solicitud unterna como usada """
+
+    try:
+        return crud_sol.marcar_solicitud_como_usada(
+            db,
+            solicitud_id,
+            data,
+            usuario_id=current_user.id,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+@router.post("/{solicitud_id}/devolver-sobrante", response_model=SolicitudAlmacenResponse)
+def devolver_sobrante(
+    solicitud_id:int,
+    data:DevolverSobranteRequest,
+    db:Session=Depends(get_db),
+    current_user=Depends(require_roles(["superuser","admin","coordinador","almacenista"])),
+):
+    """ Devuelve al almacén los sobrantes de una solicitud interna """
+
+    try:
+        return crud_sol.devolver_sobrante_interna(
+            db,
+            solicitud_id,
+            data,
+            usuario_id=current_user.id,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
 
 # ================= ACCIONES DE ESTADO ===================
 

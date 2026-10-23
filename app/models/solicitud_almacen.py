@@ -12,20 +12,18 @@ class SolicitudAlmacen(Base):
 
     id=Column(Integer,primary_key=True,index=True)
     folio=Column(String(30),unique=True,nullable=False,index=True)
-    tipo=Column(String(20),nullable=False) # entrega | recoleccion
+    tipo=Column(String(20),nullable=False) # entrega | recoleccion | interna
     estado=Column(String(30),nullable=False, default="solicitud")
+
     # solicitud | autorizado | entregado | devolucion_parcial | 
     # devolucion_total | recolectado | cancelado
-
-    # Para solicitudes internas
-    id_tecnico=Column(Integer, ForeignKey("usuarios.id"),nullable=True)
-    id_mantenimiento=Column(Integer, ForeignKey("mantenimientos.id"),nullable=True)
+     
 
     # Relaciones
-    id_cliente=Column(Integer,ForeignKey("clientes.id"),nullable=False)
+    id_cliente=Column(Integer,ForeignKey("clientes.id"),nullable=True)
     id_contrato=Column(Integer,ForeignKey("contratos.id"),nullable=True)
-    tecnico=relationship("Usuario",foreign_keys=[id_tecnico])
-    mantenimiento=relationship("Mantenimiento",foreign_keys=[id_mantenimiento])
+    id_tecnico=Column(Integer, ForeignKey("usuarios.id"),nullable=True)
+    id_mantenimiento=Column(Integer, ForeignKey("mantenimientos.id"),nullable=True)
 
     # Autorización
     requiere_autorizacion=Column(Boolean,default=False)
@@ -36,6 +34,7 @@ class SolicitudAlmacen(Base):
     fecha_solicitud=Column(TIMESTAMP,server_default=func.now())
     fecha_entrega=Column(TIMESTAMP,nullable=True)
     fecha_recoleccion=Column(TIMESTAMP,nullable=True)
+    fecha_surtido=Column(TIMESTAMP,nullable=True)
 
     # Chofer
     chofer=Column(String(200), nullable=True)
@@ -52,6 +51,8 @@ class SolicitudAlmacen(Base):
     # Relaciones ORM
     cliente=relationship("Cliente")
     contrato=relationship("Contrato")
+    tecnico=relationship("Usuario",foreign_keys=[id_tecnico])
+    mantenimiento=relationship("Mantenimiento",foreign_keys=[id_mantenimiento])
     autorizador=relationship("Usuario", foreign_keys=[autorizado_por])
     procesador=relationship("Usuario", foreign_keys=[procesado_por])
     registrador=relationship("Usuario",foreign_keys=[registrado_por])
@@ -72,6 +73,14 @@ class SolicitudAlmacen(Base):
         return self.contrato.id if self.contrato else None
 
     @property
+    def tecnico_nombre(self) -> str | None:
+        return self.tecnico.nombre_completo if self.tecnico else None
+
+    @property
+    def mantenimiento_folio(self) -> str | None:
+        return self.mantenimiento.folio if self.mantenimiento else None
+
+    @property
     def autorizador_nombre(self) -> str | None:
         return self.autorizador.nombre_completo if self.autorizador else None
 
@@ -80,16 +89,15 @@ class SolicitudAlmacen(Base):
         return self.procesador.nombre_completo if self.procesador else None
 
     @property
-    def total_articulos(self) -> str | None:
+    def registrador_nombre(self) -> str | None:
+        return self.registrador.nombre_completo if self.registrador else None
+
+    @property
+    def total_articulos(self) -> int | None:
         return len(self.detalle) if self.detalle else 0
 
-    @property
-    def tecnico_nombre(self) -> str | None:
-        return self.tecnico.nombre_completo if self.tecnico else None
+    
 
-    @property
-    def mantenimiento_folio(self) -> str | None:
-        return self.mantenimiento.folio if self.mantenimiento else None
     
 
     
