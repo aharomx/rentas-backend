@@ -7,7 +7,7 @@ from app.database import Base
 
 
 class SolicitudAlmacenDetalle(Base):
-    __tablename__="solicitud_almacen_detalle"
+    __tablename__="solicitud_almacen_detalles"
 
     id=Column(Integer,primary_key=True,index=True)
     id_solicitud=Column(

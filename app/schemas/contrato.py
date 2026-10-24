@@ -13,6 +13,11 @@ class ContratoEquipoBase(BaseModel):
     contador_actual_mono: Optional[int]=0
     contador_actual_color: Optional[int]=0
     ubicacion: Optional[str]=None
+    # Costo por equipo (plan costo_diferenciado)
+    costo_renta_equipo:Optional[Decimal]=None
+    costo_click_mono_equipo:Optional[Decimal]=None
+    costo_click_color_equipo:Optional[Decimal]=None
+
 
 
 class ContratoEquipoCreate(ContratoEquipoBase):
@@ -26,9 +31,16 @@ class ContratoEquipoResponse(ContratoEquipoBase):
     contador_inicial_color:Optional[int]=None
     contador_actual_mono:Optional[int]=None
     contador_actual_color:Optional[int]=None
+    ubicacion:Optional[str]=None
     activo:bool 
     fecha_baja:Optional[date]=None
+    # Costos diferenciados
+    costo_renta_equipo:Optional[Decimal]=None
+    costo_click_mono_equipo:Optional[Decimal]=None
+    costo_click_color_equipo:Optional[Decimal]=None
+    # Equipo anidado
     equipo:Optional[EquipoResponse]=None
+    
 
     class Config:
         from_attributes=True

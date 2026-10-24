@@ -11,7 +11,7 @@ from app.models import (
     Usuario, AuditoriaAcceso, Articulo, MantenimientoEquipo,
     MantenimientoRefaccion, Mantenimiento,CategoriaArticulo,
     MovimientoAlmacen, SolicitudAlmacen, SolicitudAlmacenDetalle,
-    InventarioCliente
+    InventarioCliente, DocumentoCobro, DetalleCobroEquipo, DetalleCobroBolsa
 )
 
 # ⭐ CREAR TABLAS SI NO EXISTEN

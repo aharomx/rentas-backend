@@ -96,7 +96,11 @@ def create_contrato(db:Session, contrato:ContratoCreate):
             contador_inicial_color=equipo_data.contador_inicial_color or 0,
             contador_actual_mono=equipo_data.contador_actual_mono,
             contador_actual_color=equipo_data.contador_actual_color or 0,
-            ubicacion=equipo_data.ubicacion
+            ubicacion=equipo_data.ubicacion,
+            # para costos diferenciados
+            costo_renta_equipo=equipo_data.costo_renta_equipo,
+            costo_click_mono_equipo=equipo_data.costo_click_mono_equipo,
+            costo_click_color_equipo=equipo_data.costo_click_color_equipo,
         )
 
         db.add(db_contrato_equipo)
@@ -211,7 +215,11 @@ def mover_equipo_contrato(
         contador_inicial_color=nuevo_contador_inicial_color or 0,
         contador_actual_mono=nuevo_contador_inicial_mono,
         contador_actual_color=nuevo_contador_inicial_color or 0,
-        ubicacion=nueva_ubicacion or contrato_equipo_origen.ubicacion
+        ubicacion=nueva_ubicacion or contrato_equipo_origen.ubicacion,
+        # Costos Diferenciados
+        costo_renta_equipo=contrato_equipo_origen.costo_renta_equipo,
+        costo_click_mono_equipo=contrato_equipo_origen.costo_click_mono_equipo,
+        costo_click_color_equipo=contrato_equipo_origen.costo_click_color_equipo,
     ) 
     db.add(nuevo_contrato_equipo)
 
@@ -286,6 +294,10 @@ def agregar_equipo_a_contrato(db: Session, contrato_id: int, equipo_data: Contra
         contador_actual_mono=equipo_data.contador_inicial_mono,
         contador_actual_color=equipo_data.contador_inicial_color or 0,
         ubicacion=equipo_data.ubicacion,
+        # Costos diferenciados
+        costo_renta_equipo=equipo_data.costo_renta_equipo,
+        costo_click_mono_equipo=equipo_data.costo_click_mono_equipo,
+        costo_click_color_equipo=equipo_data.costo_click_color_equipo,
         activo=True
     )
     db.add(db_contrato_equipo)

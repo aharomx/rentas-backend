@@ -18,6 +18,10 @@ from app.models.movimiento_almacen import MovimientoAlmacen
 from app.models.solicitud_almacen import SolicitudAlmacen
 from app.models.solicitud_almacen_detalle import SolicitudAlmacenDetalle
 from app.models.inventario_cliente import InventarioCliente
+from app.models.documento_cobro import DocumentoCobro
+from app.models.detalle_cobro_equipo import DetalleCobroEquipo
+from app.models.detalle_cobro_bolsa import DetalleCobroBolsa
+
 
 
 

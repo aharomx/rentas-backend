@@ -8,7 +8,7 @@ class LecturaContador(Base):
     __tablename__ = "lecturas_contadores"
 
     id = Column(Integer, primary_key=True, index=True)
-    id_contrato_equipo = Column(Integer, ForeignKey("contrato_equipo.id", ondelete="CASCADE"), nullable=False)
+    id_contrato_equipo = Column(Integer, ForeignKey("contrato_equipos.id", ondelete="CASCADE"), nullable=False)
     id_orden_lectura = Column(Integer, ForeignKey("ordenes_lectura.id"), nullable=True)
 
     fecha_lectura = Column(Date, nullable=False)

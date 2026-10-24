@@ -7,7 +7,7 @@ from app.database import Base
 
 
 class MantenimientoEquipo(Base):
-    __tablename__ = "mantenimiento_equipo"
+    __tablename__ = "mantenimiento_equipos"
 
     id=Column(Integer,primary_key=True,index=True)
     id_mantenimiento=Column(Integer,ForeignKey("mantenimientos.id", ondelete="CASCADE"),nullable=False)
