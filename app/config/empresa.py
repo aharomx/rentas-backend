@@ -10,6 +10,7 @@ EMPRESA_RFC = "RIP123456ABC"
 EMPRESA_DIRECCION = "Av. Reforma 123, Col. Centro, CDMX, CP 06000"
 EMPRESA_TELEFONO = "55 5555 5555"
 EMPRESA_EMAIL = "contacto@rentas-impresoras.com"
+IVA_PORCENTAJE = 0.16
 
 # ========== LOGO ==========
 # Ruta al archivo de logo (PNG o JPG). Si no existe, se deja espacio en blanco.

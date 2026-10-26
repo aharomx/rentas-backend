@@ -61,3 +61,14 @@ from app.schemas.inventario_cliente import (
     ResumenInventarioCliente,
     TonerEnCliente
 )
+
+from app.schemas.documento_cobro import (
+    GenerarDocumentoCobroRequest, VistaPreviaRequest,
+    DocumentoCobroUpdate, CrearNotaRequest,
+    DocumentoCobroResponse, DocumentoCobroResumenResponse,
+    VistaPreviaResponse
+)
+
+from app.schemas.detalle_cobro_equipo import DetalleCobroEquipoResponse
+from app.schemas.detalle_cobro_bolsa import DetalleCobroBolsaResponse
+
