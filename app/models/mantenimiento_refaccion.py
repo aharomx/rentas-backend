@@ -9,7 +9,7 @@ class MantenimientoRefaccion(Base):
     id=Column(Integer, primary_key=True, index=True)
     id_mantenimiento_equipo=Column(
         Integer,
-        ForeignKey("mantenimiento_equipo.id",ondelete="CASCADE"),
+        ForeignKey("mantenimiento_equipos.id",ondelete="CASCADE"),
         nullable=False
     )
     id_articulo=Column(Integer,ForeignKey("articulos.id"),nullable=False)

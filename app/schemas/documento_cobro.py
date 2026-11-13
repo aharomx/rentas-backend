@@ -2,7 +2,11 @@ from pydantic import BaseModel, Field
 from datetime import datetime 
 from decimal import Decimal
 from typing import Optional, List
-from app.schemas.detalle_cobro_equipo import DetalleCobroEquipoResponse
+from app.schemas.detalle_cobro_equipo import(
+    DetalleCobroEquipoResponse,
+    DetalleCobroEquipoVistaPrevia,
+    DetalleCobroBolsaVistaPrevia
+) 
 from app.schemas.detalle_cobro_bolsa import DetalleCobroBolsaResponse
 
 
@@ -150,6 +154,6 @@ class VistaPreviaResponse(BaseModel):
     advertencias:List[str]=[]
     equipos_sin_lectura:List[str]=[]
 
-    # Detalles
-    detalles_equipos:List[DetalleCobroEquipoResponse]=[]
-    detalles_bolsas:List[DetalleCobroBolsaResponse]=[]
+    # Detalles (usando schemas de vista previa)
+    detalles_equipos:List[DetalleCobroEquipoVistaPrevia]=[]
+    detalles_bolsas:List[DetalleCobroBolsaVistaPrevia]=[]
