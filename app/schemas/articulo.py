@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from app.schemas.categoria_articulo import CategoriaArticuloResponse
 
@@ -12,6 +13,7 @@ class ArticuloBase(BaseModel):
     modelo_compatible:Optional[int]=None
     stock_minimo:int=5
     unidad_medida:str="PIEZA"
+    costo:Decimal=Decimal("0")
 
 
 class ArticuloCreate(ArticuloBase):
@@ -27,6 +29,7 @@ class ArticuloUpdate(BaseModel):
     stock_minimo:Optional[int]=None
     unidad_medida:Optional[str]=None
     activo:Optional[bool]=None
+    costo:Optional[Decimal]=None
 
     # No se incluye el stock actual ya que solo se modifica por movimientos
 

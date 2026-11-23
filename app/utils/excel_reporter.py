@@ -475,5 +475,389 @@ def reporte_historial_refacciones_equipos(
     wb.save(filename)
     return filename
 
+# ================= REPORTE: DASHBOARD KPI's ============================
 
+def reporte_dashboard_kpis(
+    db: Session,
+    output_dir: str = "reportes",
+) -> str:
+    """Reporte de KPIs en Excel."""
+    from app.crud import reportes_kpi as crud_kpi
+    os.makedirs(output_dir, exist_ok=True)
+    
+    kpis = crud_kpi.get_dashboard_kpis(db)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Dashboard KPIs"
+    
+    _encabezados_reporte(ws, "DASHBOARD - INDICADORES CLAVE")
+    
+    # Sección: KPIs básicos
+    ws.cell(row=5, column=1, value="INDICADORES BÁSICOS").font = Font(bold=True, size=11, color=COLOR_TITULO)
+    ws.merge_cells("A5:D5")
+    
+    row = 6
+    kpis_basicos = kpis["kpis_basicos"]
+    for nombre, valor in [
+        ("Total Clientes Activos", kpis_basicos["total_clientes"]),
+        ("Total Contratos Activos", kpis_basicos["total_contratos"]),
+        ("Total Equipos Rentados", kpis_basicos["total_equipos_rentados"]),
+        ("Total Equipos Disponibles", kpis_basicos["total_equipos_disponibles"]),
+    ]:
+        ws.cell(row=row, column=1, value=nombre).font = Font(bold=True)
+        ws.cell(row=row, column=2, value=valor)
+        row += 1
+    
+    row += 1
+    
+    # Sección: Facturación
+    ws.cell(row=row, column=1, value="FACTURACIÓN").font = Font(bold=True, size=11, color=COLOR_TITULO)
+    ws.merge_cells(f"A{row}:D{row}")
+    row += 1
+    
+    facturacion = kpis["facturacion"]
+    for nombre, valor in [
+        (f"Facturación {kpis['periodo_actual']}", f"${facturacion['mes_actual']:,.2f}"),
+        (f"Facturación {kpis['periodo_anterior']}", f"${facturacion['mes_anterior']:,.2f}"),
+        ("Cambio %", f"{facturacion['cambio_porcentaje']:+.2f}%"),
+    ]:
+        ws.cell(row=row, column=1, value=nombre).font = Font(bold=True)
+        ws.cell(row=row, column=2, value=valor)
+        row += 1
+    
+    row += 1
+    
+    # Sección: Alertas
+    ws.cell(row=row, column=1, value="ALERTAS").font = Font(bold=True, size=11, color="CC0000")
+    ws.merge_cells(f"A{row}:D{row}")
+    row += 1
+    
+    alertas = kpis["alertas"]
+    for nombre, valor in [
+        ("Contratos por vencer (30 días)", alertas["contratos_por_vencer_30d"]),
+        ("Equipos sin lectura este mes", alertas["equipos_sin_lectura_mes"]),
+        ("Artículos con stock crítico", alertas["stock_critico"]),
+        ("Mantenimientos pendientes", alertas["mantenimientos_pendientes"]),
+    ]:
+        ws.cell(row=row, column=1, value=nombre).font = Font(bold=True)
+        cell = ws.cell(row=row, column=2, value=valor)
+        if valor > 0:
+            cell.fill = PatternFill(start_color="FFE0E0", end_color="FFE0E0", fill_type="solid")
+        row += 1
+    
+    _ajustar_columnas(ws, 4)
+    
+    filename = f"{output_dir}/dashboard_kpis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    wb.save(filename)
+    return filename
+
+# ================ REPORTE: FACTURACIÓN POR PERIODO ===================
+
+def reporte_facturacion_periodo(
+    db: Session,
+    anio: Optional[int] = None,
+    id_cliente: Optional[int] = None,
+    output_dir: str = "reportes",
+) -> str:
+    """Reporte de facturación agrupada por mes."""
+    from app.crud import reportes_facturacion as crud_fact
+    os.makedirs(output_dir, exist_ok=True)
+    
+    data = crud_fact.get_facturacion_por_periodo(db, anio=anio, id_cliente=id_cliente)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Facturación"
+    
+    _encabezados_reporte(ws, "FACTURACIÓN POR PERÍODO")
+    
+    headers = [
+        "Período", "Documentos", "Renta", "Clicks Mono", "Clicks Color",
+        "Excedente Mono", "Excedente Color", "Total Facturado"
+    ]
+    row_header = 5
+    for col, h in enumerate(headers, start=1):
+        ws.cell(row=row_header, column=col, value=h)
+    _aplicar_estilo_header(ws, row_header, len(headers))
+    
+    row = row_header + 1
+    for item in data["items"]:
+        ws.cell(row=row, column=1, value=item["periodo"])
+        ws.cell(row=row, column=2, value=item["cantidad_documentos"])
+        ws.cell(row=row, column=3, value=item["total_renta"])
+        ws.cell(row=row, column=4, value=item["total_clicks_mono"])
+        ws.cell(row=row, column=5, value=item["total_clicks_color"])
+        ws.cell(row=row, column=6, value=item["total_excedente_mono"])
+        ws.cell(row=row, column=7, value=item["total_excedente_color"])
+        ws.cell(row=row, column=8, value=item["total_facturado"])
+        row += 1
+    
+    if row > row_header + 1:
+        _aplicar_estilo_body(ws, row_header + 1, row - 1, len(headers))
+        
+        # Formato de moneda
+        for r in range(row_header + 1, row):
+            for c in [3, 4, 5, 6, 7, 8]:
+                ws.cell(row=r, column=c).number_format = '"$"#,##0.00'
+    
+    # Fila de total
+    ws.cell(row=row, column=1, value="TOTAL").font = Font(bold=True)
+    ws.cell(row=row, column=8, value=data["total_general"]).font = Font(bold=True)
+    ws.cell(row=row, column=8).number_format = '"$"#,##0.00'
+    ws.cell(row=row, column=8).fill = PatternFill(
+        start_color=COLOR_SUBHEADER, end_color=COLOR_SUBHEADER, fill_type="solid"
+    )
+    
+    _ajustar_columnas(ws, len(headers))
+    
+    filename = f"{output_dir}/facturacion_periodo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    wb.save(filename)
+    return filename
+
+# ======================= REPORTE: CONSUMO DE TÓNER ======================
+
+def reporte_consumo_toner(
+        db:Session,
+        id_cliente:Optional[int]=None,
+        fecha_inicio:Optional[date]=None,
+        fecha_fin:Optional[date]=None,
+        output_dir:str="reportes",
+) -> str:
+    """ Reporte de consumo de tóner por cliente. """
+    from app.crud import reportes_consumo as crud_cons
+    os.makedirs(output_dir, exist_ok=True)
+
+    data = crud_cons.get_consumo_toner_por_cliente(
+        db,
+        id_cliente=id_cliente,
+        fecha_inicio=fecha_inicio, 
+        fecha_fin=fecha_fin
+    )
+
+    wb=Workbook()
+    ws=wb.active
+    ws.title="Consumo Tóner"
+
+    _encabezados_reporte(ws, "CONSUMO DE TÓNER POR CLIENTE")
+
+    headers=["Cliente","Tóner","Color","Cantidad","Costo Total"]
+    row_header=5
+    for col, h in enumerate(headers, start=1):
+        ws.cell(row=row_header, column=col, value=h )
+
+    _aplicar_estilo_header(ws, row_header, len(headers))
+
+    row = row_header+1
+    for cliente in data["clientes"]:
+        for toner in cliente["toners"]:
+            ws.cell(row=row, column=1, value=cliente["cliente_nombre"])
+            ws.cell(row=row, column=2, value=toner["nombre"])
+            ws.cell(row=row, column=3, value=toner["color"])
+            ws.cell(row=row, column=4, value=toner["cantidad"])
+            ws.cell(row=row, column=5, value=toner["costo_total"])
+            ws.cell(row=row, column=5).number_format='"$"#,##0.00'
+            row += 1
+
+    if row > row_header + 1:
+        _aplicar_estilo_body(ws, row_header + 1, len(headers))
+
+    # Totales
+    ws.cell(row=row, column=1, value="TOTAL").font=Font(bold=True)
+    ws.cell(row=row, column=4, value=data["total_toners"]).font=Font(bold=True)
+    ws.cell(row=row, column=5, value=data["costo_total"]).font=Font(bold=True)
+    ws.cell(row=row, column=5).number_format='"$"#,##0.00'
+    ws.cell(row=row, column=5).fill = PatternFill(
+        start_color=COLOR_SUBHEADER, end_color=COLOR_SUBHEADER, fill_type="solid"
+    )
+
+    _ajustar_columnas(ws, len(headers))
+
+    filename=f"{output_dir}/consmo_toner_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    wb.save(filename)
+    return filename
+
+# ================ REPORTE: CONSUMO REAL VS ESPERADO ==================
+def reporte_consumo_real_vs_esperado(
+    db:Session,
+    id_cliente:Optional[int]=None,
+    id_contrato:Optional[int]=None,
+    fecha_inicio:Optional[date]=None,
+    fecha_fin:Optional[date]=None,
+    porcentaje_cobertura:float=5.0,
+    output_dir:str="reportes",
+) -> str:
+    """ Reporte de consumo real vs esperado de tóner """
+    from app.crud import reportes_consumo as crud_cons
+    from decimal import Decimal
+    os.makedirs(output_dir, exist_ok=True)
+
+    data=crud_cons.get_consumo_real_vs_esperado(
+        db,
+        id_cliente=id_cliente,
+        id_contrato=id_contrato,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        porcentaje_cobertura=Decimal(str(porcentaje_cobertura))
+    )
+
+    wb=Workbook()
+    ws=wb.active
+    ws.title="Consumo Real vs Esperado"
+
+    _encabezados_reporte(ws, "CONSUMO REAL VS ESPERADO DE TÓNER")
+
+    # Subtitulo con parámetros
+    ws.cell(row=4, column=1, value=f"Porcentaje de cobertura: {porcentaje_cobertura}%")
+    ws.merge_cells("A4:F4")
+
+    headers=[
+        "Cliente", "Tóners Enviados", "Impresiones Reales",
+        "Rendimiento Esperado", "Cobertuda %", "Alertas"
+    ]
+
+    row_header=6
+    for col, h in enumerate(headers, start=1):
+        ws.cell(row=row_header, column=col, value=h)
+    _aplicar_estilo_header(ws,row_header,len(headers))
+
+    row=row_header+1
+    for r in data["resultados"]:
+        total_toners=r["toners_enviados"]["total"]
+        impresiones=r["impresiones"]["total"]
+        esperado_mono=r["rendimiento_esperado"]["mono"]
+        esperado_color=r["rendimiento_esperado"]["color"]
+        cobertura_mono=r["comparacion"]["cobertura_mono_pct"]
+
+        ws.cell(row=row, column=1, value=r["cliente_nombre"])
+        ws.cell(row=row, column=2, valur=total_toners)
+        ws.cell(row=row, column=3, value=impresiones)
+        ws.cell(row=row, column=4, value=esperado_mono + esperado_color)
+        ws.cell(row=row, column=5, value=cobertura_mono)
+        ws.cell(row=row, column=6, value=", ".join(r["alertas"]) if r["alertas"] else "Sin alertas")
+
+        # Resaltar si hay alertas
+        if r["alertas"]:
+            for c in range(1, len(headers) + 1):
+                ws.cell(row=row, column=c).fill=PatternFill(
+                    start_color="FFF3CD", end_color="FFF3CD",fill_type="solid"
+                )
+        row += 1
+
+        if row > row_header + 1:
+            _aplicar_estilo_body(ws, row_header + 1, row - 1, len(headers))
+
+        _ajustar_columnas(ws, len(headers))
+
+        filename = f"{output_dir}/consumo_real_vs_esperado_{datetime.now().strftime('%Y%m$d_%H%M%S')}.xlsx"
+        wb.save(filename)
+        return filename
+
+# =================== REPORTE: EQUIPOS MAS RENTABLES ================
+
+def reporte_equipos_mas_rentables(
+    db:Session,
+    limite:int = 20,
+    fecha_inicio:Optional[date]=None,
+    fecha_fin:Optional[date]=None,
+    output_dir:str="reportes",
+) -> str:
+    """ Reporte de equipos más rentables """
+
+    from app.crud import reportes_equipos as crud_eq
+    os.makedirs(output_dir, exist_ok=True)
+
+    data=crud_eq.get_equipos_mas_rentables(
+        db,
+        limite=limite,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+    )
+
+    wb=Workbook 
+    ws=wb.active
+    ws.title="Equipos Rentables"
+
+    _encabezados_reporte(ws,"EQUIPOS MÁS RENTABLES")
+
+    headers=[
+        "No. Serie", "Modelo", "Facturas", "Imp. Mono", "Imp. Color", "Ingresos"
+    ]
+    row_header=5
+    for col, h in enumerate(headers,start=1):
+        ws.cell(row=row_header, column=col, value=h)
+    _aplicar_estilo_header(ws, row_header, len(headers))
+
+    row=row_header + 1
+    for item in data:
+        ws.cell(row=row, column=1, value=item["numero_serie"])
+        ws.cell(row=row, column=2, value=item["modelo"])
+        ws.cell(row=row, column=3, value=item["num_facturas"])
+        ws.cell(row=row, column=4, value=item["total_impresiones_mono"])
+        ws.cell(row=row, column=5, value=item["total_impresiones_color"])
+        ws.cell(row=row, column=6, value=item["ingresos_totales"])
+        ws.cell(row=row, column=6).number_format = '"$"#,##0.00'
+        row += 1
+
+    if row>row_header + 1:
+        _aplicar_estilo_body(ws, row_header + 1, row - 1, len(headers))
+
+    _ajustar_columnas(ws, len(headers))
+
+    filename=f"{output_dir}/equipos_rentables_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    wb.save(filename)
+    return filename
+
+# ====================== REPORTE: CONTRATOS POR VENCER ==================
+
+def reporte_contratos_por_vencer(
+        db:Session,
+        dias:int=30,
+        output_dir:str="reportes",
+) -> str:
+    """ Reporte de contratos próximos a vencer """
+    from app.crud import reportes_contratos as crud_ct
+    os.makedirs(output_dir, exist_ok=True)
+
+    data=crud_ct.get_contratos_por_vencer(db, dias=dias)
+
+    wb=Workbook
+    ws=wb.active
+    ws.title="Contratos por Vencer"
+
+    _encabezados_reporte(ws, f"CONTRATOS POR VENCER (PRÓXIMOS {dias} DÍAS)")
+
+    headers=["Contrato","Cliente","Plan","Fecha Fin", "Dias Restantes", "Renta Mensual"]
+    row_header=5
+    for col,h in enumerate(headers, start=1):
+        ws.cell(row=row_header, column=col, value=h)
+    _aplicar_estilo_header(ws, row_header, len(headers))
+
+    row=row_header + 1
+    for item in data:
+        ws.cell(row=row, column=1, valur=item["id_contrato"])
+        ws.cell(row=row, column=2, valur=item["cliente_nombre"])
+        ws.cell(row=row, column=3, valur=item["tipo_plan"])
+        ws.cell(row=row, column=4, valur=item["fecha_fin"])
+        ws.cell(row=row, column=5, valur=item["dias_restantes"])
+        ws.cell(row=row, column=6, valur=item["costo_renta_mensual"])
+        ws.cell(row=row, column=6).number_format = '"$"#,##0.00'
+
+        # Resaltar si vence en menos de 15 días
+        if item["dias_restantes"] <= 15:
+            for c in range(1, len(headers)+1):
+                ws.cell(row=row, column=c).fill = PatternFill(
+                    start_color="FFE0E0", end_color="FFE0E0", fill_type="solid"
+                )
+
+        row += 1
+
+    if row>row_header+1:
+        _aplicar_estilo_body(ws,row_header+1,row-1,len(headers))
+
+    _ajustar_columnas(ws,len(headers))
+
+    filename=f"{output_dir}/contratos_por_vencer_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    wb.save(filename)
+    return filename
 

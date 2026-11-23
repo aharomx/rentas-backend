@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, Boolean,DECIMAL
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -13,6 +13,7 @@ class Articulo(Base):
     tipo=Column(String(50),nullable=False) # toner, refaccion, kit
     id_categoria=Column(Integer,ForeignKey("categorias_articulo.id"),nullable=True)
     modelo_compatible=Column(Integer,ForeignKey("modelos_impresoras.id"),nullable=True)
+    costo=Column(DECIMAL(12,2),default=0)
 
     #stock
     stock_minimo=Column(Integer,default=5)

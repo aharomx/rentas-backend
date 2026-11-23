@@ -17,4 +17,6 @@ from app.routers import solicitudes_almacen
 from app.routers import inventario_cliente
 from app.routers import reportes_almacen
 from app.routers import documentos_cobro
+from app.routers import reportes
+
 
