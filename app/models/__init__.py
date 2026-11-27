@@ -21,6 +21,8 @@ from app.models.inventario_cliente import InventarioCliente
 from app.models.documento_cobro import DocumentoCobro
 from app.models.detalle_cobro_equipo import DetalleCobroEquipo
 from app.models.detalle_cobro_bolsa import DetalleCobroBolsa
+from app.models.alerta import Alerta
+
 
 
 

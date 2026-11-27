@@ -72,3 +72,8 @@ from app.schemas.documento_cobro import (
 from app.schemas.detalle_cobro_equipo import DetalleCobroEquipoResponse
 from app.schemas.detalle_cobro_bolsa import DetalleCobroBolsaResponse
 
+from app.schemas.alerta import (
+    AlertaResponse, AlertaResumenResponse,
+    MarcarLeidaRequest, AtenderAlertaRequest, DescartarAlertaRequest,
+    GenerarAlertaResponse, ResumenAlertasDashboard
+)
